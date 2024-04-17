@@ -4,9 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { KeyMod, KeyCode } from 'vs/base/common/keyCodes';
+import { URI } from 'vs/base/common/uri';
 import { localize2, localize } from 'vs/nls';
 import { MenuRegistry, MenuId } from 'vs/platform/actions/common/actions';
-import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
+import { ConfigurationTarget, IConfigurationOverrides, IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { ServicesAccessor } from 'vs/platform/instantiation/common/instantiation';
 import { KeybindingsRegistry, KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
@@ -105,16 +106,66 @@ export function registerDiffEditorCommands(): void {
 
 	function toggleDiffSideBySide(accessor: ServicesAccessor): void {
 		const configurationService = accessor.get(IConfigurationService);
+		const activeTextDiffEditor = getActiveTextDiffEditor(accessor);
 
-		const newValue = !configurationService.getValue('diffEditor.renderSideBySide');
-		configurationService.updateValue('diffEditor.renderSideBySide', newValue);
+		const m = activeTextDiffEditor?.getControl()?.getModifiedEditor()?.getModel();
+		if (!m) { return; }
+
+		updateValueEffectively(
+			configurationService,
+			'diffEditor.renderSideBySide',
+			{ resource: m.uri, overrideIdentifier: m.getLanguageId() },
+			previousValue => !previousValue
+		);
 	}
 
 	function toggleDiffIgnoreTrimWhitespace(accessor: ServicesAccessor): void {
 		const configurationService = accessor.get(IConfigurationService);
+		const activeTextDiffEditor = getActiveTextDiffEditor(accessor);
 
-		const newValue = !configurationService.getValue('diffEditor.ignoreTrimWhitespace');
-		configurationService.updateValue('diffEditor.ignoreTrimWhitespace', newValue);
+		const m = activeTextDiffEditor?.getControl()?.getModifiedEditor()?.getModel();
+		if (!m) { return; }
+
+		updateValueEffectively(
+			configurationService,
+			'diffEditor.ignoreTrimWhitespace',
+			{ resource: m.uri, overrideIdentifier: m.getLanguageId() },
+			previousValue => !previousValue
+		);
+	}
+
+	/**
+	 * Makes sure that after the function returns, reading
+	 * the configuration value with the same overrides will
+	 * return the updated value.
+	 *
+	 * This function should probably be supported directly by the configuration service.
+	*/
+	function updateValueEffectively<T>(
+		configurationService: IConfigurationService,
+		key: string,
+		overrides: IConfigurationOverrides,
+		updateFn: (previousValue: T) => T,
+	): void {
+		const v = configurationService.inspect(key, overrides);
+		let needsOverride = false;
+		let target = ConfigurationTarget.USER;
+
+		if (v.default?.override !== undefined) { needsOverride = true; }
+		if (v.user?.override !== undefined) { needsOverride = true; }
+
+		if (v.workspace?.value !== undefined) { target = ConfigurationTarget.WORKSPACE; }
+		if (v.workspace?.override !== undefined) { needsOverride = true; target = ConfigurationTarget.WORKSPACE; }
+
+		if (v.workspaceFolder?.value !== undefined) { target = ConfigurationTarget.WORKSPACE_FOLDER; }
+		if (v.workspaceFolder?.override !== undefined) { needsOverride = true; target = ConfigurationTarget.WORKSPACE_FOLDER; }
+
+		const newValue = updateFn(configurationService.getValue(key, overrides));
+
+		configurationService.updateValue(key, newValue, {
+			overrideIdentifier: needsOverride ? overrides.overrideIdentifier : undefined,
+			resource: overrides.resource
+		}, target);
 	}
 
 	async function swapDiffSides(accessor: ServicesAccessor): Promise<void> {
