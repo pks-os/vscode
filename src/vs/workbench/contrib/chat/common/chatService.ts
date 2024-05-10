@@ -107,8 +107,8 @@ export interface IChatProgressMessage {
 }
 
 export interface IChatTask extends IChatTaskDto {
-	task?: () => Promise<string | void>;
-	isSettled?: () => boolean;
+	task: () => Promise<string | void>;
+	isSettled: () => boolean;
 }
 
 export interface IChatTaskDto {
@@ -298,6 +298,7 @@ export interface IChatSendRequestOptions {
 
 	/** The target agent ID can be specified with this property instead of using @ in 'message' */
 	agentId?: string;
+	slashCommand?: string;
 }
 
 export const IChatService = createDecorator<IChatService>('IChatService');
