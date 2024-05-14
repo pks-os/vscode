@@ -114,6 +114,7 @@ export interface IChatLiveUpdateData {
 }
 
 export interface IChatResponseViewModel {
+	readonly model: IChatResponseModel;
 	readonly id: string;
 	readonly sessionId: string;
 	/** This ID updates every time the underlying data changes */
@@ -273,22 +274,11 @@ export class ChatViewModel extends Disposable implements IChatViewModel {
 		const renderer = new marked.Renderer();
 		renderer.code = (value, languageId) => {
 			languageId ??= '';
-			const newText = this.fixCodeText(value, languageId);
-			this.codeBlockModelCollection.update(this._model.sessionId, model, codeBlockIndex++, { text: newText, languageId });
+			this.codeBlockModelCollection.update(this._model.sessionId, model, codeBlockIndex++, { text: value, languageId });
 			return '';
 		};
 
 		marked.parse(this.ensureFencedCodeBlocksTerminated(content), { renderer });
-	}
-
-	private fixCodeText(text: string, languageId: string): string {
-		if (languageId === 'php') {
-			if (!text.trim().startsWith('<')) {
-				return `<?php\n${text}\n?>`;
-			}
-		}
-
-		return text;
 	}
 
 	/**
@@ -361,6 +351,10 @@ export class ChatResponseViewModel extends Disposable implements IChatResponseVi
 
 	private readonly _onDidChange = this._register(new Emitter<void>());
 	readonly onDidChange = this._onDidChange.event;
+
+	get model() {
+		return this._model;
+	}
 
 	get id() {
 		return this._model.id;
