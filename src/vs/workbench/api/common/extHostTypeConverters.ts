@@ -2351,10 +2351,13 @@ export namespace ChatResponseFilesPart {
 
 export namespace ChatResponseAnchorPart {
 	export function from(part: vscode.ChatResponseAnchorPart): Dto<IChatContentInlineReference> {
+		// Work around type-narrowing confusion between vscode.Uri and URI
+		const isUri = (thing: unknown): thing is vscode.Uri => URI.isUri(thing);
+
 		return {
 			kind: 'inlineReference',
 			name: part.title,
-			inlineReference: !URI.isUri(part.value) ? Location.from(<vscode.Location>part.value) : part.value
+			inlineReference: isUri(part.value) ? part.value : Location.from(part.value)
 		};
 	}
 
@@ -2439,7 +2442,7 @@ export namespace ChatResponseTextEditPart {
 }
 
 export namespace ChatResponseReferencePart {
-	export function from(part: vscode.ChatResponseReferencePart): Dto<IChatContentReference> {
+	export function from(part: types.ChatResponseReferencePart): Dto<IChatContentReference> {
 		const iconPath = ThemeIcon.isThemeIcon(part.iconPath) ? part.iconPath
 			: URI.isUri(part.iconPath) ? { light: URI.revive(part.iconPath) }
 				: (part.iconPath && 'light' in part.iconPath && 'dark' in part.iconPath && URI.isUri(part.iconPath.light) && URI.isUri(part.iconPath.dark) ? { light: URI.revive(part.iconPath.light), dark: URI.revive(part.iconPath.dark) }
@@ -2478,7 +2481,7 @@ export namespace ChatResponseReferencePart {
 				value: value.reference.value && mapValue(value.reference.value)
 			} :
 				mapValue(value.reference)
-		);
+		) as vscode.ChatResponseReferencePart; // 'value' is extended with variableName
 	}
 }
 
@@ -2566,7 +2569,7 @@ export namespace ChatLocation {
 }
 
 export namespace ChatAgentValueReference {
-	export function to(variable: IChatRequestVariableEntry): vscode.ChatValueReference {
+	export function to(variable: IChatRequestVariableEntry): vscode.ChatPromptReference {
 		const value = variable.value;
 		if (!value) {
 			throw new Error('Invalid value reference');
