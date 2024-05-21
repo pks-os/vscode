@@ -41,6 +41,7 @@ import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { IQuickInputService, IQuickPick, IQuickPickItem } from 'vs/platform/quickinput/common/quickInput';
 import { IStorageService, StorageScope, StorageTarget } from 'vs/platform/storage/common/storage';
 import { AccessibilityVerbositySettingId, AccessibilityWorkbenchSettingId, accessibilityHelpIsShown, accessibleViewContainsCodeBlocks, accessibleViewCurrentProviderId, accessibleViewGoToSymbolSupported, accessibleViewInCodeBlock, accessibleViewIsShown, accessibleViewOnLastLine, accessibleViewSupportsNavigation, accessibleViewVerbosityEnabled } from 'vs/workbench/contrib/accessibility/browser/accessibilityConfiguration';
+import { resolveContentAndKeybindingItems } from 'vs/workbench/contrib/accessibility/browser/accessibleViewKeybindingResolver';
 import { AccessibilityCommandId } from 'vs/workbench/contrib/accessibility/common/accessibilityCommands';
 import { IChatCodeBlockContextProviderService } from 'vs/workbench/contrib/chat/browser/chat';
 import { ICodeBlockActionContext } from 'vs/workbench/contrib/chat/browser/codeBlockPart';
@@ -331,7 +332,7 @@ export class AccessibleView extends Disposable {
 				inBlock = true;
 				startLine = i + 1;
 				languageId = line.substring(3).trim();
-			} else if (inBlock && line.startsWith('```')) {
+			} else if (inBlock && line.endsWith('```')) {
 				inBlock = false;
 				const endLine = i;
 				const code = lines.slice(startLine, endLine).join('\n');
@@ -364,6 +365,7 @@ export class AccessibleView extends Disposable {
 
 	configureKeybindings(): void {
 		const items = this._currentProvider?.options?.configureKeybindingItems;
+		const provider = this._currentProvider;
 		if (!items) {
 			return;
 		}
@@ -380,7 +382,12 @@ export class AccessibleView extends Disposable {
 			}
 			quickPick.dispose();
 		});
-		quickPick.onDidHide(() => quickPick.dispose());
+		quickPick.onDidHide(() => {
+			if (!quickPick.selectedItems.length && provider) {
+				this.show(provider);
+			}
+			quickPick.dispose();
+		});
 	}
 
 	private _convertTokensToSymbols(tokens: marked.TokensList, symbols: IAccessibleViewSymbol[]): void {
@@ -485,7 +492,17 @@ export class AccessibleView extends Disposable {
 			}
 		}
 		const exitThisDialogHint = verbose && !provider.options.position ? localize('exit', '\n\nExit this dialog (Escape).') : '';
-		const newContent = message + provider.provideContent() + readMoreLink + disableHelpHint + exitThisDialogHint;
+		let content = provider.provideContent();
+		if (provider.options.type === AccessibleViewType.Help) {
+			const resolvedContent = resolveContentAndKeybindingItems(this._keybindingService, content);
+			if (resolvedContent) {
+				content = resolvedContent.content.value;
+				if (resolvedContent.configureKeybindingItems) {
+					provider.options.configureKeybindingItems = resolvedContent.configureKeybindingItems;
+				}
+			}
+		}
+		const newContent = message + content + readMoreLink + disableHelpHint + exitThisDialogHint;
 		this.calculateCodeBlocks(newContent);
 		this._currentContent = newContent;
 		this._updateContextKeys(provider, true);
