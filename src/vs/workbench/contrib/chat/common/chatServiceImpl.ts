@@ -569,7 +569,7 @@ export class ChatService extends Disposable implements IChatService {
 					const updatedVariableData = updateRanges(variableData, promptTextResult.diff); // TODO bit of a hack
 
 					// TODO- should figure out how to get rid of implicit variables for inline chat
-					const implicitVariablesEnabled = location === ChatAgentLocation.Editor;
+					const implicitVariablesEnabled = (location === ChatAgentLocation.Editor || location === ChatAgentLocation.Notebook);
 					if (implicitVariablesEnabled) {
 						const implicitVariables = agent.defaultImplicitVariables;
 						if (implicitVariables) {
@@ -700,6 +700,28 @@ export class ChatService extends Disposable implements IChatService {
 		model.removeRequest(requestId);
 	}
 
+	async adoptRequest(sessionId: string, request: IChatRequestModel) {
+		if (!(request instanceof ChatRequestModel)) {
+			throw new TypeError('Can only adopt requests of type ChatRequestModel');
+		}
+		const target = this._sessionModels.get(sessionId);
+		if (!target) {
+			throw new Error(`Unknown session: ${sessionId}`);
+		}
+
+		await target.waitForInitialization();
+
+		const oldOwner = request.session;
+		target.adoptRequest(request);
+
+		if (request.response && !request.response.isComplete) {
+			const cts = this._pendingRequests.deleteAndLeak(oldOwner.sessionId);
+			if (cts) {
+				this._pendingRequests.set(target.sessionId, cts);
+			}
+		}
+	}
+
 	async addCompleteRequest(sessionId: string, message: IParsedChatRequest | string, variableData: IChatRequestVariableData | undefined, attempt: number | undefined, response: IChatCompleteResponse): Promise<void> {
 		this.trace('addCompleteRequest', `message: ${message}`);
 
@@ -742,7 +764,9 @@ export class ChatService extends Disposable implements IChatService {
 		}
 
 		if (model.initialLocation === ChatAgentLocation.Panel) {
-			this._persistedSessions[sessionId] = model.toJSON();
+			// Turn all the real objects into actual JSON, otherwise, calling 'revive' may fail when it tries to
+			// assign values to properties that are getters- microsoft/vscode-copilot-release#1233
+			this._persistedSessions[sessionId] = JSON.parse(JSON.stringify(model));
 		}
 
 		this._sessionModels.deleteAndDispose(sessionId);
