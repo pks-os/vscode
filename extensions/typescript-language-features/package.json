@@ -13,7 +13,8 @@
     "multiDocumentHighlightProvider",
     "mappedEditsProvider",
     "codeActionAI",
-    "codeActionRanges"
+    "codeActionRanges",
+    "documentPaste"
   ],
   "capabilities": {
     "virtualWorkspaces": {
@@ -1284,13 +1285,13 @@
         },
         "typescript.tsserver.web.projectWideIntellisense.suppressSemanticErrors": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "%configuration.tsserver.web.projectWideIntellisense.suppressSemanticErrors%",
           "scope": "window"
         },
         "typescript.tsserver.web.typeAcquisition.enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "%configuration.tsserver.web.typeAcquisition.enabled%",
           "scope": "window"
         },
@@ -1316,6 +1317,20 @@
           "default": true,
           "markdownDescription": "%typescript.workspaceSymbols.excludeLibrarySymbols%",
           "scope": "window"
+        },
+        "javascript.experimental.updateImportsOnPaste": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.updateImportsOnPaste%",
+          "tags": ["experimental"]
+        },
+        "typescript.experimental.updateImportsOnPaste": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.updateImportsOnPaste%",
+          "tags": ["experimental"]
         }
       }
     },
