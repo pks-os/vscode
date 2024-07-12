@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Event } from 'vs/base/common/event';
 import { IObservable } from 'vs/base/common/observable';
 import { ThemeIcon } from 'vs/base/common/themables';
 import { URI } from 'vs/base/common/uri';
@@ -18,13 +17,9 @@ export interface ISCMHistoryProviderMenus {
 }
 
 export interface ISCMHistoryProvider {
-
-	readonly onDidChangeCurrentHistoryItemGroup: Event<void>;
-
-	get currentHistoryItemGroup(): ISCMHistoryItemGroupWithRevision | undefined;
-	set currentHistoryItemGroup(historyItemGroup: ISCMHistoryItemGroupWithRevision | undefined);
-	readonly currentHistoryItemGroupObs: IObservable<ISCMHistoryItemGroup | undefined>;
-	readonly currentHistoryItemGroupWithRevisionObs: IObservable<ISCMHistoryItemGroupWithRevision | undefined>;
+	readonly currentHistoryItemGroupId: IObservable<string | undefined>;
+	readonly currentHistoryItemGroupName: IObservable<string | undefined>;
+	readonly currentHistoryItemGroup: IObservable<ISCMHistoryItemGroup | undefined>;
 
 	provideHistoryItems(historyItemGroupId: string, options: ISCMHistoryOptions): Promise<ISCMHistoryItem[] | undefined>;
 	provideHistoryItems2(options: ISCMHistoryOptions): Promise<ISCMHistoryItem[] | undefined>;
@@ -51,16 +46,9 @@ export interface ISCMHistoryOptions {
 export interface ISCMHistoryItemGroup {
 	readonly id: string;
 	readonly name: string;
+	readonly revision?: string;
 	readonly base?: Omit<Omit<ISCMHistoryItemGroup, 'base'>, 'remote'>;
 	readonly remote?: Omit<Omit<ISCMHistoryItemGroup, 'base'>, 'remote'>;
-}
-
-export interface ISCMHistoryItemGroupWithRevision {
-	readonly id: string;
-	readonly name: string;
-	readonly revision: string;
-	readonly base?: Omit<Omit<ISCMHistoryItemGroupWithRevision, 'base'>, 'remote'>;
-	readonly remote?: Omit<Omit<ISCMHistoryItemGroupWithRevision, 'base'>, 'remote'>;
 }
 
 export interface SCMHistoryItemGroupTreeElement {
