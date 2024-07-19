@@ -36,14 +36,12 @@ export const enum VSCodeSuggestOscPt {
 
 export type CompressedPwshCompletion = [
 	completionText: string,
-	listItemText: string,
 	resultType: number,
 	toolTip: string
 ];
 
 export type PwshCompletion = {
 	CompletionText: string;
-	ListItemText: string;
 	ResultType: number;
 	ToolTip: string;
 };
@@ -117,6 +115,10 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	private _leadingLineContent?: string;
 	private _cursorIndexDelta: number = 0;
 
+	private _lastUserDataTimestamp: number = 0;
+	private _lastAcceptedCompletionTimestamp: number = 0;
+	private _lastUserData?: string;
+
 	static requestCompletionsSequence = '\x1b[24~e'; // F12,e
 
 	private readonly _onBell = this._register(new Emitter<void>());
@@ -157,6 +159,10 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		this._register(xterm.parser.registerOscHandler(ShellIntegrationOscPs.VSCode, data => {
 			return this._handleVSCodeSequence(data);
 		}));
+		this._register(xterm.onData(e => {
+			this._lastUserData = e;
+			this._lastUserDataTimestamp = Date.now();
+		}));
 	}
 
 	setPanel(panel: HTMLElement): void {
@@ -168,8 +174,11 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	}
 
 	private _requestCompletions(): void {
-		// TODO: Debounce? Prevent this flooding the channel
-		this._onAcceptedCompletion.fire(SuggestAddon.requestCompletionsSequence);
+		// Ensure that a key has been pressed since the last accepted completion in order to prevent
+		// completions being requested again right after accepting a completion
+		if (this._lastUserDataTimestamp > this._lastAcceptedCompletionTimestamp) {
+			this._onAcceptedCompletion.fire(SuggestAddon.requestCompletionsSequence);
+		}
 	}
 
 	private _sync(promptInputState: IPromptInputModelState): void {
@@ -184,8 +193,12 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 				if (config.quickSuggestions) {
 					const completionPrefix = promptInputState.value.substring(0, promptInputState.cursorIndex);
 					if (promptInputState.cursorIndex === 1 || completionPrefix.match(/([\s\[])[^\s]$/)) {
-						this._requestCompletions();
-						sent = true;
+						// Never request completions if the last key sequence was up or down as the user was likely
+						// navigating history
+						if (this._lastUserData !== /*up*/'\x1b[A' && this._lastUserData !== /*down*/'\x1b[B') {
+							this._requestCompletions();
+							sent = true;
+						}
 					}
 				}
 
@@ -294,9 +307,6 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		else {
 			completions.push(...this._cachedPwshCommands);
 		}
-		// this._cursorIndexDelta = replacementLength;
-
-		// const lineContext = new LineContext(this._leadingLineContent, this._cursorIndexDelta);
 
 		this._currentPromptInputState = {
 			value: this._promptInputModel.value,
@@ -397,7 +407,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		this._leadingLineContent = completions[0].completion.label.slice(0, replacementLength);
 		const model = new SimpleCompletionModel(completions, new LineContext(this._leadingLineContent, replacementIndex), replacementIndex, replacementLength);
 		if (completions.length === 1) {
-			const insertText = (completions[0].completion.completionText ?? completions[0].completion.label).substring(replacementLength);
+			const insertText = completions[0].completion.label.substring(replacementLength);
 			if (insertText.length === 0) {
 				this._onBell.fire();
 				return;
@@ -475,7 +485,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		this._suggestWidget?.selectNextPage();
 	}
 
-	acceptSelectedSuggestion(suggestion?: Pick<ISimpleSelectedSuggestion, 'item' | 'model'>): void {
+	acceptSelectedSuggestion(suggestion?: Pick<ISimpleSelectedSuggestion, 'item' | 'model'>, respectRunOnEnter?: boolean): void {
 		if (!suggestion) {
 			suggestion = this._suggestWidget?.getFocusedItem();
 		}
@@ -483,6 +493,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		if (!suggestion || !initialPromptInputState || !this._leadingLineContent || !this._model) {
 			return;
 		}
+		this._lastAcceptedCompletionTimestamp = Date.now();
 		this._suggestWidget?.hide();
 
 		const currentPromptInputState = this._currentPromptInputState ?? initialPromptInputState;
@@ -506,6 +517,31 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			rightSideReplacementText = currentPromptInputState.value.substring(currentPromptInputState.cursorIndex, spaceIndex === -1 ? undefined : currentPromptInputState.cursorIndex + spaceIndex);
 		}
 
+		const completion = suggestion.item.completion;
+		const completionText = completion.label;
+
+		let runOnEnter = false;
+		if (respectRunOnEnter) {
+			const runOnEnterConfig = this._configurationService.getValue<ITerminalSuggestConfiguration>(terminalSuggestConfigSection).runOnEnter;
+			switch (runOnEnterConfig) {
+				case 'always': {
+					runOnEnter = true;
+					break;
+				}
+				case 'exactMatch': {
+					runOnEnter = replacementText.toLowerCase() === completionText.toLowerCase();
+					break;
+				}
+				case 'exactMatchIgnoreExtension': {
+					runOnEnter = replacementText.toLowerCase() === completionText.toLowerCase();
+					if (completion.icon === Codicon.symbolFile || completion.icon === Codicon.symbolMethod) {
+						runOnEnter ||= replacementText.toLowerCase() === completionText.toLowerCase().replace(/\.[^\.]+$/, '');
+					}
+					break;
+				}
+			}
+		}
+
 		// Send the completion
 		this._onAcceptedCompletion.fire([
 			// Backspace (left) to remove all additional input
@@ -513,7 +549,9 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			// Delete (right) to remove any additional text in the same word
 			'\x1b[3~'.repeat(rightSideReplacementText.length),
 			// Write the completion
-			suggestion.item.completion.completionText ?? suggestion.item.completion.label,
+			completion.label,
+			// Run on enter if needed
+			runOnEnter ? '\r' : ''
 		].join(''));
 
 		this.hideSuggestWidget();
@@ -563,8 +601,7 @@ export function parseCompletionsFromShell(rawCompletions: PwshCompletion | PwshC
 	}
 	if (!Array.isArray(rawCompletions)) {
 		return [rawCompletions].map(e => (new SimpleCompletionItem({
-			completionText: e.CompletionText,
-			label: e.ListItemText,
+			label: e.CompletionText,
 			icon: pwshTypeToIconMap[e.ResultType],
 			detail: e.ToolTip
 		})));
@@ -574,23 +611,20 @@ export function parseCompletionsFromShell(rawCompletions: PwshCompletion | PwshC
 	}
 	if (typeof rawCompletions[0] === 'string') {
 		return [rawCompletions as CompressedPwshCompletion].map(e => (new SimpleCompletionItem({
-			completionText: e[0],
-			label: e[1],
-			icon: pwshTypeToIconMap[e[2]],
-			detail: e[3]
+			label: e[0],
+			icon: pwshTypeToIconMap[e[1]],
+			detail: e[2]
 		})));
 	}
 	if (Array.isArray(rawCompletions[0])) {
 		return (rawCompletions as CompressedPwshCompletion[]).map(e => (new SimpleCompletionItem({
-			completionText: e[0],
-			label: e[1],
-			icon: pwshTypeToIconMap[e[2]],
-			detail: e[3]
+			label: e[0],
+			icon: pwshTypeToIconMap[e[1]],
+			detail: e[2]
 		})));
 	}
 	return (rawCompletions as PwshCompletion[]).map(e => (new SimpleCompletionItem({
-		completionText: e.CompletionText,
-		label: e.ListItemText,
+		label: e.CompletionText, // e.ListItemText,
 		icon: pwshTypeToIconMap[e.ResultType],
 		detail: e.ToolTip
 	})));
