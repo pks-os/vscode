@@ -829,6 +829,7 @@ class HistoryItemActionRunner extends ActionRunner {
 
 		const args: (ISCMProvider | ISCMHistoryItem)[] = [];
 		args.push(context.historyItemGroup.repository.provider);
+
 		args.push({
 			id: context.id,
 			parentIds: context.parentIds,
@@ -838,6 +839,49 @@ class HistoryItemActionRunner extends ActionRunner {
 			timestamp: context.timestamp,
 			statistics: context.statistics,
 		} satisfies ISCMHistoryItem);
+
+		await action.run(...args);
+	}
+}
+
+class HistoryItemActionRunner2 extends ActionRunner {
+	constructor(private readonly getSelectedHistoryItems: () => SCMHistoryItemViewModelTreeElement[]) {
+		super();
+	}
+
+	protected override async runAction(action: IAction, context: SCMHistoryItemViewModelTreeElement): Promise<any> {
+		if (!(action instanceof MenuItemAction)) {
+			return super.runAction(action, context);
+		}
+
+		const args: (ISCMProvider | ISCMHistoryItem)[] = [];
+		args.push(context.repository.provider);
+
+		const selection = this.getSelectedHistoryItems();
+		const contextIsSelected = selection.some(s => s === context);
+		if (contextIsSelected && selection.length > 1) {
+			args.push(...[selection[0], selection[selection.length - 1]]
+				.map(h => (
+					{
+						id: h.historyItemViewModel.historyItem.id,
+						parentIds: h.historyItemViewModel.historyItem.parentIds,
+						message: h.historyItemViewModel.historyItem.message,
+						author: h.historyItemViewModel.historyItem.author,
+						icon: h.historyItemViewModel.historyItem.icon,
+						timestamp: h.historyItemViewModel.historyItem.timestamp,
+						statistics: h.historyItemViewModel.historyItem.statistics,
+					} satisfies ISCMHistoryItem)));
+		} else {
+			args.push({
+				id: context.historyItemViewModel.historyItem.id,
+				parentIds: context.historyItemViewModel.historyItem.parentIds,
+				message: context.historyItemViewModel.historyItem.message,
+				author: context.historyItemViewModel.historyItem.author,
+				icon: context.historyItemViewModel.historyItem.icon,
+				timestamp: context.historyItemViewModel.historyItem.timestamp,
+				statistics: context.historyItemViewModel.historyItem.statistics,
+			} satisfies ISCMHistoryItem);
+		}
 
 		await action.run(...args);
 	}
@@ -1101,10 +1145,7 @@ class HistoryItem2Renderer implements ICompressibleTreeRenderer<SCMHistoryItemVi
 
 		markdown.appendMarkdown(`${historyItem.message}\n\n`);
 
-		if (historyItem.statistics?.files) {
-			const historyItemAdditionsForegroundColor = colorTheme.getColor(historyItemAdditionsForeground);
-			const historyItemDeletionsForegroundColor = colorTheme.getColor(historyItemDeletionsForeground);
-
+		if (historyItem.statistics) {
 			markdown.appendMarkdown(`---\n\n`);
 
 			markdown.appendMarkdown(`<span>${historyItem.statistics.files === 1 ?
@@ -1112,12 +1153,14 @@ class HistoryItem2Renderer implements ICompressibleTreeRenderer<SCMHistoryItemVi
 				localize('filesChanged', "{0} files changed", historyItem.statistics.files)}</span>`);
 
 			if (historyItem.statistics.insertions) {
+				const historyItemAdditionsForegroundColor = colorTheme.getColor(historyItemAdditionsForeground);
 				markdown.appendMarkdown(`,&nbsp;<span style="color:${historyItemAdditionsForegroundColor};">${historyItem.statistics.insertions === 1 ?
 					localize('insertion', "{0} insertion{1}", historyItem.statistics.insertions, '(+)') :
 					localize('insertions', "{0} insertions{1}", historyItem.statistics.insertions, '(+)')}</span>`);
 			}
 
 			if (historyItem.statistics.deletions) {
+				const historyItemDeletionsForegroundColor = colorTheme.getColor(historyItemDeletionsForeground);
 				markdown.appendMarkdown(`,&nbsp;<span style="color:${historyItemDeletionsForegroundColor};">${historyItem.statistics.deletions === 1 ?
 					localize('deletion', "{0} deletion{1}", historyItem.statistics.deletions, '(-)') :
 					localize('deletions', "{0} deletions{1}", historyItem.statistics.deletions, '(-)')}</span>`);
@@ -1141,7 +1184,7 @@ class HistoryItem2Renderer implements ICompressibleTreeRenderer<SCMHistoryItemVi
 
 				const historyItemGroupHoverLabelIconId = ThemeIcon.isThemeIcon(label.icon) ? label.icon.id : '';
 
-				return `<span style="color:${historyItemGroupHoverLabelForegroundColor};background-color:${historyItemGroupHoverLabelBackgroundColor};">&nbsp;$(${historyItemGroupHoverLabelIconId})&nbsp;${label.title}&nbsp;</span>`;
+				return `<span style="color:${historyItemGroupHoverLabelForegroundColor};background-color:${historyItemGroupHoverLabelBackgroundColor};border-radius:2px;">&nbsp;$(${historyItemGroupHoverLabelIconId})&nbsp;${label.title}&nbsp;</span>`;
 			}).join('&nbsp;&nbsp;'));
 		}
 
@@ -3507,6 +3550,13 @@ export class SCMViewPane extends ViewPane {
 				actionRunner = new HistoryItemActionRunner();
 				actions = collectContextMenuActions(menu);
 			}
+		} else if (isSCMHistoryItemViewModelTreeElement(element)) {
+			const menus = this.scmViewService.menus.getRepositoryMenus(element.repository.provider);
+			const menu = menus.historyProviderMenu?.getHistoryItemMenu2(element);
+			if (menu) {
+				actionRunner = new HistoryItemActionRunner2(() => this.getSelectedHistoryItems());
+				actions = collectContextMenuActions(menu);
+			}
 		}
 
 		actionRunner.onWillRun(() => this.tree.domFocus());
@@ -3529,6 +3579,11 @@ export class SCMViewPane extends ViewPane {
 	private getSelectedResources(): (ISCMResource | IResourceNode<ISCMResource, ISCMResourceGroup>)[] {
 		return this.tree.getSelection()
 			.filter(r => !!r && !isSCMResourceGroup(r))! as any;
+	}
+
+	private getSelectedHistoryItems(): SCMHistoryItemViewModelTreeElement[] {
+		return this.tree.getSelection()
+			.filter(r => !!r && isSCMHistoryItemViewModelTreeElement(r))!;
 	}
 
 	private getViewMode(): ViewMode {
@@ -3775,7 +3830,7 @@ export class SCMViewPane extends ViewPane {
 			actions.push(toHistoryItemGroupFilterAction(currentHistoryItemGroup.remote.id, currentHistoryItemGroup.remote.name));
 		}
 
-		if (currentHistoryItemGroup.base && currentHistoryItemGroup.base.id !== currentHistoryItemGroup.remote?.id) {
+		if (currentHistoryItemGroup.base) {
 			actions.push(toHistoryItemGroupFilterAction(currentHistoryItemGroup.base.id, currentHistoryItemGroup.base.name));
 		}
 
