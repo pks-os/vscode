@@ -21,6 +21,7 @@ import type { IPromptInputModel, IPromptInputModelState } from 'vs/platform/term
 import { ShellIntegrationOscPs } from 'vs/platform/terminal/common/xterm/shellIntegrationAddon';
 import { getListStyles } from 'vs/platform/theme/browser/defaultStyles';
 import { activeContrastBorder } from 'vs/platform/theme/common/colorRegistry';
+import { ITerminalConfigurationService } from 'vs/workbench/contrib/terminal/browser/terminal';
 import type { IXtermCore } from 'vs/workbench/contrib/terminal/browser/xterm-private';
 import { TerminalStorageKeys } from 'vs/workbench/contrib/terminal/common/terminalStorageKeys';
 import { terminalSuggestConfigSection, type ITerminalSuggestConfiguration } from 'vs/workbench/contrib/terminalContrib/suggest/common/terminalSuggestConfiguration';
@@ -111,6 +112,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 	private _screen?: HTMLElement;
 	private _suggestWidget?: SimpleSuggestWidget;
 	private _enableWidget: boolean = true;
+	private _pathSeparator: string = sep;
 	private _isFilteringDirectories: boolean = false;
 
 	private _codeCompletionsRequested: boolean = false;
@@ -140,6 +142,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		private readonly _terminalSuggestWidgetVisibleContextKey: IContextKey<boolean>,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
+		@ITerminalConfigurationService private readonly _terminalConfigurationService: ITerminalConfigurationService,
 	) {
 		super();
 
@@ -271,7 +274,7 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 			this._cursorIndexDelta = this._currentPromptInputState.cursorIndex - this._initialPromptInputState.cursorIndex;
 			let leadingLineContent = this._leadingLineContent + this._currentPromptInputState.value.substring(this._leadingLineContent.length, this._leadingLineContent.length + this._cursorIndexDelta);
 			if (this._isFilteringDirectories) {
-				leadingLineContent = leadingLineContent.replaceAll('/', '\\');
+				leadingLineContent = normalizePathSeparator(leadingLineContent, this._pathSeparator);
 			}
 			const lineContext = new LineContext(leadingLineContent, this._cursorIndexDelta);
 			this._suggestWidget.setLineContext(lineContext);
@@ -353,9 +356,16 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 		this._cursorIndexDelta = 0;
 
 		let leadingLineContent = this._leadingLineContent + this._currentPromptInputState.value.substring(this._leadingLineContent.length, this._leadingLineContent.length + this._cursorIndexDelta);
-		this._isFilteringDirectories = completions.every(e => e.completion.isDirectory);
+		// If there is a single directory in the completions:
+		// - `\` and `/` are normalized such that either can be used
+		// - Using `\` or `/` will request new completions. It's important that this only occurs
+		//   when a directory is present, if not completions like git branches could be requested
+		//   which leads to flickering
+		this._isFilteringDirectories = completions.some(e => e.completion.isDirectory);
 		if (this._isFilteringDirectories) {
-			leadingLineContent = leadingLineContent.replaceAll('/', '\\');
+			const firstDir = completions.find(e => e.completion.isDirectory);
+			this._pathSeparator = firstDir?.completion.label.match(/(?<sep>[\\\/])/)?.groups?.sep ?? sep;
+			leadingLineContent = normalizePathSeparator(leadingLineContent, this._pathSeparator);
 		}
 		const lineContext = new LineContext(leadingLineContent, this._cursorIndexDelta);
 		const model = new SimpleCompletionModel(completions, lineContext, replacementIndex, replacementLength);
@@ -499,6 +509,17 @@ export class SuggestAddon extends Disposable implements ITerminalAddon, ISuggest
 				SimpleSuggestWidget,
 				this._panel!,
 				this._instantiationService.createInstance(PersistedWidgetSize),
+				() => {
+					const c = this._terminalConfigurationService.config;
+					const font = this._terminalConfigurationService.getFont(dom.getActiveWindow());
+					return {
+						fontFamily: font.fontFamily,
+						fontSize: font.fontSize,
+						lineHeight: Math.ceil(1.5 * font.fontSize),
+						fontWeight: c.fontWeight.toString(),
+						letterSpacing: font.letterSpacing
+					};
+				},
 				{}
 			));
 			this._suggestWidget.list.style(getListStyles({
@@ -725,4 +746,11 @@ function getIcon(resultType: number, tooltip: string): ThemeIcon {
 		}
 	}
 	return pwshTypeToIconMap[resultType] ?? Codicon.symbolText;
+}
+
+function normalizePathSeparator(path: string, sep: string): string {
+	if (sep === '/') {
+		return path.replaceAll('\\', '/');
+	}
+	return path.replaceAll('/', '\\');
 }
