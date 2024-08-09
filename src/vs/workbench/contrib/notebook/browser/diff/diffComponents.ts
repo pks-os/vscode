@@ -773,8 +773,7 @@ abstract class SingleSideDiffElement extends AbstractElementRenderer {
 	override readonly cell: SingleSideDiffElementViewModel;
 	override readonly templateData: CellDiffSingleSideRenderTemplate;
 	abstract get nestedCellViewModel(): DiffNestedCellViewModel;
-	abstract get changedLabel(): string;
-	abstract get isEditable(): boolean;
+	abstract get readonly(): boolean;
 	constructor(
 		notebookEditor: INotebookTextDiffEditor,
 		cell: SingleSideDiffElementViewModel,
@@ -916,9 +915,7 @@ abstract class SingleSideDiffElement extends AbstractElementRenderer {
 					height: editorHeight
 				}
 			);
-			if (this.isEditable) {
-				this._editor.updateOptions({ readOnly: false });
-			}
+			this._editor.updateOptions({ readOnly: this.readonly });
 			this.cell.editorHeight = editorHeight;
 
 			this._register(this._editor.onDidContentSizeChange((e) => {
@@ -940,7 +937,7 @@ abstract class SingleSideDiffElement extends AbstractElementRenderer {
 				getFoldingState: (cell) => cell.cellFoldingState,
 				updateFoldingState: (cell, state) => cell.cellFoldingState = state,
 				unChangedLabel: 'Input',
-				changedLabel: this.changedLabel,
+				changedLabel: 'Input',
 				prefix: 'input',
 				menuId: MenuId.NotebookDiffCellInputTitle
 			}
@@ -1093,10 +1090,7 @@ export class DeletedElement extends SingleSideDiffElement {
 	get nestedCellViewModel() {
 		return this.cell.original!;
 	}
-	get changedLabel() {
-		return 'Input deleted';
-	}
-	get isEditable() {
+	get readonly() {
 		return true;
 	}
 
@@ -1226,11 +1220,8 @@ export class InsertElement extends SingleSideDiffElement {
 	get nestedCellViewModel() {
 		return this.cell.modified!;
 	}
-	get changedLabel() {
-		return 'Input inserted';
-	}
-	get isEditable() {
-		return true;
+	get readonly() {
+		return false;
 	}
 
 	styleContainer(container: HTMLElement): void {
@@ -1767,7 +1758,10 @@ export class ModifiedElement extends AbstractElementRenderer {
 			if (state.metadataHeight || state.outerWidth) {
 				if (this._metadataEditorContainer) {
 					this._metadataEditorContainer.style.height = `${this.cell.layoutInfo.metadataHeight}px`;
-					this._metadataEditor?.layout();
+					this._metadataEditor?.layout({
+						width: this._editor?.getViewWidth() || this.cell.getComputedCellContainerWidth(this.notebookEditor.getLayoutInfo(), false, true),
+						height: this.cell.layoutInfo.metadataHeight
+					});
 				}
 			}
 
