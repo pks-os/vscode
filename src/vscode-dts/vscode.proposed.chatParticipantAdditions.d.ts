@@ -188,8 +188,6 @@ declare module 'vscode' {
 		 * The `data` for any confirmations that were rejected
 		 */
 		rejectedConfirmationData?: any[];
-
-		requestedTools?: string[];
 	}
 
 	// TODO@API fit this into the stream
@@ -238,21 +236,13 @@ declare module 'vscode' {
 		 */
 		export function createChatParticipant(id: string, handler: ChatExtendedRequestHandler): ChatParticipant;
 
-		/**
-		 * Current version of the proposal. Changes whenever backwards-incompatible changes are made.
-		 * If a new feature is added that doesn't break existing code, the version is not incremented. When the extension uses this new feature, it should set its engines.vscode version appropriately.
-		 * But if a change is made to an existing feature that would break existing code, the version should be incremented.
-		 * The chat extension should not activate if it doesn't support the current version.
-		 */
-		export const _version: 1 | number;
-
 		export function registerChatParticipantDetectionProvider(participantDetectionProvider: ChatParticipantDetectionProvider): Disposable;
 	}
 
 	export interface ChatParticipantMetadata {
 		participant: string;
 		command?: string;
-		description?: string;
+		disambiguation: { categoryName: string; description: string; examples: string[] }[];
 	}
 
 	export interface ChatParticipantDetectionResult {
