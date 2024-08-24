@@ -25,7 +25,7 @@ import { TextEdit } from 'vs/editor/common/languages';
 import { IValidEditOperation } from 'vs/editor/common/model';
 import { IEditorWorkerService } from 'vs/editor/common/services/editorWorker';
 import { DefaultModelSHA1Computer } from 'vs/editor/common/services/modelService';
-import { InlineCompletionsController } from 'vs/editor/contrib/inlineCompletions/browser/inlineCompletionsController';
+import { InlineCompletionsController } from 'vs/editor/contrib/inlineCompletions/browser/controller/inlineCompletionsController';
 import { MessageController } from 'vs/editor/contrib/message/browser/messageController';
 import { localize } from 'vs/nls';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
@@ -752,17 +752,14 @@ export class InlineChatController implements IEditorContribution {
 
 		let newPosition: Position | undefined;
 
-		if (response.response.value.length === 0) {
+		if (response.result?.errorDetails) {
+			//
+			await this._session.undoChangesUntil(response.requestId);
+
+		} else if (response.response.value.length === 0) {
 			// empty -> show message
 			const status = localize('empty', "No results, please refine your input and try again");
 			this._ui.value.zone.widget.updateStatus(status, { classes: ['warn'] });
-
-		} else if (response.result?.errorDetails) {
-			// error -> show error
-			if (!response.isCanceled) {
-				this._ui.value.zone.widget.updateStatus(response.result.errorDetails.message, { classes: ['error'] });
-			}
-			this._strategy?.cancel();
 
 		} else {
 			// real response -> complex...
@@ -921,7 +918,7 @@ export class InlineChatController implements IEditorContribution {
 
 		let responseType = InlineChatResponseType.None;
 		for (const request of this._session.chatModel.getRequests()) {
-			if (!request.response) {
+			if (!request.response || request.response.isCanceled) {
 				continue;
 			}
 			responseType = InlineChatResponseType.Messages;
