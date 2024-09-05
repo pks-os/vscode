@@ -19,15 +19,16 @@ import { IKeybindingService } from '../../../../platform/keybinding/common/keybi
 import { ILabelService } from '../../../../platform/label/common/label.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { asCssVariable } from '../../../../platform/theme/common/colorUtils.js';
-import { IChatWidgetService } from './chat.js';
-import { ChatAgentHover, getChatAgentHoverOptions } from './chatAgentHover.js';
+import { fillEditorsDragData } from '../../../browser/dnd.js';
+import { contentRefUrl } from '../common/annotations.js';
 import { getFullyQualifiedId, IChatAgentCommand, IChatAgentData, IChatAgentNameService, IChatAgentService } from '../common/chatAgents.js';
 import { chatSlashCommandBackground, chatSlashCommandForeground } from '../common/chatColors.js';
 import { chatAgentLeader, ChatRequestAgentPart, ChatRequestAgentSubcommandPart, ChatRequestDynamicVariablePart, ChatRequestSlashCommandPart, ChatRequestTextPart, ChatRequestToolPart, ChatRequestVariablePart, chatSubcommandLeader, IParsedChatRequest, IParsedChatRequestPart } from '../common/chatParserTypes.js';
 import { IChatService } from '../common/chatService.js';
-import { contentRefUrl } from '../common/annotations.js';
 import { IChatVariablesService } from '../common/chatVariables.js';
 import { ILanguageModelToolsService } from '../common/languageModelToolsService.js';
+import { IChatWidgetService } from './chat.js';
+import { ChatAgentHover, getChatAgentHoverOptions } from './chatAgentHover.js';
 
 /** For rendering slash commands, variables */
 const decorationRefUrl = `http://_vscodedecoration_`;
@@ -161,7 +162,7 @@ export class ChatMarkdownDecorationsRenderer {
 						this.renderResourceWidget(a.textContent!, args, store),
 						a);
 				} else if (href.startsWith(contentRefUrl)) {
-					this.renderFileWidget(href, a);
+					this.renderFileWidget(href, a, store);
 				} else if (href.startsWith('command:')) {
 					this.injectKeybindingHint(a, href, this.keybindingService);
 				}
@@ -226,7 +227,7 @@ export class ChatMarkdownDecorationsRenderer {
 		return container;
 	}
 
-	private renderFileWidget(href: string, a: HTMLAnchorElement): void {
+	private renderFileWidget(href: string, a: HTMLAnchorElement, store: DisposableStore): void {
 		// TODO this can be a nicer FileLabel widget with an icon. Do a simple link for now.
 		const fullUri = URI.parse(href);
 		let location: Location | { uri: URI; range: undefined };
@@ -246,9 +247,18 @@ export class ChatMarkdownDecorationsRenderer {
 		a.setAttribute('data-href', location.uri.with({ fragment }).toString());
 
 		const label = this.labelService.getUriLabel(location.uri, { relative: true });
-		a.title = location.range ?
+		a.replaceChildren(dom.$('code', undefined, label));
+
+		const title = location.range ?
 			`${label}#${location.range.startLineNumber}-${location.range.endLineNumber}` :
 			label;
+		store.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), a, title));
+
+		// Drag and drop
+		a.draggable = true;
+		store.add(dom.addDisposableListener(a, 'dragstart', e => {
+			this.instantiationService.invokeFunction(accessor => fillEditorsDragData(accessor, [location.uri], e));
+		}));
 	}
 
 
