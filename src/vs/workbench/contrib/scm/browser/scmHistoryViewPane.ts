@@ -16,7 +16,7 @@ import { fromNow } from '../../../../base/common/date.js';
 import { createMatches, FuzzyScore, IMatch } from '../../../../base/common/filters.js';
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { Disposable, DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
-import { autorun, autorunWithStore, derived, IObservable, observableValue } from '../../../../base/common/observable.js';
+import { autorun, autorunDelta, autorunWithStore, autorunWithStoreHandleChanges, derived, IObservable, observableValue } from '../../../../base/common/observable.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
@@ -26,7 +26,6 @@ import { IHoverService, WorkbenchHoverDelegate } from '../../../../platform/hove
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IOpenEvent, WorkbenchAsyncDataTree } from '../../../../platform/list/browser/listService.js';
-import { observableConfigValue } from '../../../../platform/observable/common/platformObservableUtils.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { asCssVariable, ColorIdentifier, foreground } from '../../../../platform/theme/common/colorRegistry.js';
@@ -49,7 +48,7 @@ import { ActionRunner, IAction, IActionRunner } from '../../../../base/common/ac
 import { tail } from '../../../../base/common/arrays.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { IProgressService } from '../../../../platform/progress/common/progress.js';
-import { constObservable, latestChangedValue, observableFromEvent } from '../../../../base/common/observableInternal/utils.js';
+import { constObservable, derivedConstOnceDefined, latestChangedValue, observableFromEvent } from '../../../../base/common/observableInternal/utils.js';
 import { ContextKeys } from './scmViewPane.js';
 import { IActionViewItem } from '../../../../base/browser/ui/actionbar/actionbar.js';
 import { IDropdownMenuActionViewItemOptions } from '../../../../base/browser/ui/dropdown/dropdownActionViewItem.js';
@@ -59,6 +58,7 @@ import { IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../.
 import { Event } from '../../../../base/common/event.js';
 import { Iterable } from '../../../../base/common/iterator.js';
 import { clamp } from '../../../../base/common/numbers.js';
+import { observableConfigValue } from '../../../../platform/observable/common/platformObservableUtils.js';
 
 type TreeElement = SCMHistoryItemViewModelTreeElement | SCMHistoryItemLoadMoreTreeElement;
 
@@ -201,10 +201,13 @@ class HistoryItemRenderer implements ITreeRenderer<SCMHistoryItemViewModelTreeEl
 	static readonly TEMPLATE_ID = 'history-item';
 	get templateId(): string { return HistoryItemRenderer.TEMPLATE_ID; }
 
+	private readonly _badgesConfig = observableConfigValue<'all' | 'filter'>('scm.graph.badges', 'filter', this._configurationService);
+
 	constructor(
 		private readonly hoverDelegate: IHoverDelegate,
-		@IHoverService private readonly hoverService: IHoverService,
-		@IThemeService private readonly themeService: IThemeService
+		@IConfigurationService private readonly _configurationService: IConfigurationService,
+		@IHoverService private readonly _hoverService: IHoverService,
+		@IThemeService private readonly _themeService: IThemeService
 	) { }
 
 	renderTemplate(container: HTMLElement): HistoryItemTemplate {
@@ -225,7 +228,7 @@ class HistoryItemRenderer implements ITreeRenderer<SCMHistoryItemViewModelTreeEl
 		const historyItemViewModel = node.element.historyItemViewModel;
 		const historyItem = historyItemViewModel.historyItem;
 
-		const historyItemHover = this.hoverService.setupManagedHover(this.hoverDelegate, templateData.element, this.getTooltip(node.element));
+		const historyItemHover = this._hoverService.setupManagedHover(this.hoverDelegate, templateData.element, this.getTooltip(node.element));
 		templateData.elementDisposables.add(historyItemHover);
 
 		templateData.graphContainer.textContent = '';
@@ -237,33 +240,45 @@ class HistoryItemRenderer implements ITreeRenderer<SCMHistoryItemViewModelTreeEl
 		const [matches, descriptionMatches] = this.processMatches(historyItemViewModel, node.filterData);
 		templateData.label.setLabel(historyItem.subject, historyItem.author, { matches, descriptionMatches, extraClasses });
 
-		templateData.labelContainer.textContent = '';
-		const firstColoredLabel = historyItem.labels?.find(label => label.color);
+		this._renderLabels(historyItem, templateData);
+	}
 
-		for (const label of historyItem.labels ?? []) {
-			if (label.icon && ThemeIcon.isThemeIcon(label.icon)) {
-				const elements = h('div.label', {
-					style: {
-						color: label.color ? asCssVariable(historyItemHoverLabelForeground) : asCssVariable(foreground),
-						backgroundColor: label.color ? asCssVariable(label.color) : asCssVariable(historyItemHoverDefaultLabelBackground)
-					}
-				}, [
-					h('div.icon@icon'),
-					h('div.description@description')
-				]);
+	private _renderLabels(historyItem: ISCMHistoryItem, templateData: HistoryItemTemplate): void {
+		templateData.elementDisposables.add(autorun(reader => {
+			const labelConfig = this._badgesConfig.read(reader);
 
-				elements.icon.classList.add(...ThemeIcon.asClassNameArray(label.icon));
+			templateData.labelContainer.textContent = '';
+			const firstColoredLabel = historyItem.labels?.find(label => label.color);
 
-				elements.description.textContent = label.title;
-				elements.description.style.display = label === firstColoredLabel ? '' : 'none';
+			for (const label of historyItem.labels ?? []) {
+				if (!label.color && labelConfig === 'filter') {
+					continue;
+				}
 
-				append(templateData.labelContainer, elements.root);
+				if (label.icon && ThemeIcon.isThemeIcon(label.icon)) {
+					const elements = h('div.label', {
+						style: {
+							color: label.color ? asCssVariable(historyItemHoverLabelForeground) : asCssVariable(foreground),
+							backgroundColor: label.color ? asCssVariable(label.color) : asCssVariable(historyItemHoverDefaultLabelBackground)
+						}
+					}, [
+						h('div.icon@icon'),
+						h('div.description@description')
+					]);
+
+					elements.icon.classList.add(...ThemeIcon.asClassNameArray(label.icon));
+
+					elements.description.textContent = label.title;
+					elements.description.style.display = label === firstColoredLabel ? '' : 'none';
+
+					append(templateData.labelContainer, elements.root);
+				}
 			}
-		}
+		}));
 	}
 
 	private getTooltip(element: SCMHistoryItemViewModelTreeElement): IManagedHoverTooltipMarkdownString {
-		const colorTheme = this.themeService.getColorTheme();
+		const colorTheme = this._themeService.getColorTheme();
 		const historyItem = element.historyItemViewModel.historyItem;
 
 		const markdown = new MarkdownString('', { isTrusted: true, supportThemeIcons: true });
@@ -696,8 +711,6 @@ export class SCMHistoryViewPane extends ViewPane {
 
 	private readonly _scmProviderCtx: IContextKey<string | undefined>;
 
-	private readonly _providerCountBadgeConfig = observableConfigValue<'hidden' | 'auto' | 'visible'>('scm.providerCountBadge', 'hidden', this.configurationService);
-
 	constructor(
 		options: IViewPaneOptions,
 		@ICommandService private readonly _commandService: ICommandService,
@@ -740,13 +753,6 @@ export class SCMHistoryViewPane extends ViewPane {
 		this._treeContainer = append(container, $('.scm-view.scm-history-view'));
 		this._treeContainer.classList.add('file-icon-themable-tree');
 
-		this._register(autorun(reader => {
-			const providerCountBadgeConfig = this._providerCountBadgeConfig.read(reader);
-
-			this._treeContainer.classList.toggle('hide-provider-counts', providerCountBadgeConfig === 'hidden');
-			this._treeContainer.classList.toggle('auto-provider-counts', providerCountBadgeConfig === 'auto');
-		}));
-
 		this._createTree(this._treeContainer);
 
 		this.onDidChangeBodyVisibility(visible => {
@@ -754,82 +760,77 @@ export class SCMHistoryViewPane extends ViewPane {
 				this._treeViewModel = this.instantiationService.createInstance(SCMHistoryViewModel);
 				this._visibilityDisposables.add(this._treeViewModel);
 
-				this._treeOperationSequencer.queue(async () => {
-					await this._tree.setInput(this._treeViewModel);
-					this._tree.scrollTop = 0;
+				const firstRepository = derivedConstOnceDefined(this, reader => {
+					const repository = this._treeViewModel.repository.read(reader);
+					const historyProvider = repository?.provider.historyProvider.read(reader);
+					const currentHistoryItemGroup = historyProvider?.currentHistoryItemGroup.read(reader);
+
+					return currentHistoryItemGroup !== undefined ? repository : undefined;
 				});
 
-				this._visibilityDisposables.add(autorunWithStore((reader, store) => {
-					const repository = this._treeViewModel.repository.read(reader);
+				this._visibilityDisposables.add(autorunWithStore(async (reader, store) => {
+					const repository = firstRepository.read(reader);
 					if (!repository) {
 						return;
 					}
 
-					const currentHistoryItemGroupId = derived(reader => {
-						const historyProvider = repository.provider.historyProvider.read(reader);
-						const currentHistoryItemGroup = historyProvider?.currentHistoryItemGroup.read(reader);
-
-						return currentHistoryItemGroup?.id;
+					this._treeOperationSequencer.queue(async () => {
+						await this._tree.setInput(this._treeViewModel);
+						this._tree.scrollTop = 0;
 					});
 
-					const currentHistoryItemGroupRevision = derived(reader => {
-						const historyProvider = repository.provider.historyProvider.read(reader);
-						const currentHistoryItemGroup = historyProvider?.currentHistoryItemGroup.read(reader);
+					// Repository change
+					store.add(
+						autorunWithStoreHandleChanges<{ refresh: boolean }>({
+							owner: this,
+							createEmptyChangeSummary: () => ({ refresh: false }),
+							handleChange(_, changeSummary) {
+								changeSummary.refresh = true;
+								return true;
+							},
+						}, (reader, changeSummary, store) => {
+							const repository = this._treeViewModel.repository.read(reader);
+							const historyProvider = repository?.provider.historyProvider.read(reader);
+							if (!repository || !historyProvider) {
+								return;
+							}
 
-						return currentHistoryItemGroup?.revision;
-					});
+							// Update context
+							this._scmProviderCtx.set(repository.provider.contextValue);
 
-					const currentHistoryItemGroupRemoteId = derived(reader => {
-						const historyProvider = repository.provider.historyProvider.read(reader);
-						const currentHistoryItemGroup = historyProvider?.currentHistoryItemGroup.read(reader);
+							// HistoryItemGroup change
+							store.add(autorunDelta(historyProvider.currentHistoryItemGroup, args => {
+								// Skip the first execution
+								if (args.lastValue === undefined) {
+									return;
+								}
 
-						return currentHistoryItemGroup?.remote?.id;
-					});
+								if (args.lastValue.id !== args.newValue?.id ||
+									args.lastValue.revision !== args.newValue?.revision ||
+									args.lastValue.remote?.id !== args.newValue?.remote?.id) {
 
-					const currentHistoryItemGroupRemoteRevision = derived(reader => {
-						const historyProvider = repository.provider.historyProvider.read(reader);
-						const currentHistoryItemGroup = historyProvider?.currentHistoryItemGroup.read(reader);
+									this.refresh();
+									return;
+								}
 
-						return currentHistoryItemGroup?.remote?.revision;
-					});
+								if (args.lastValue?.remote?.revision !== args.newValue?.remote?.revision) {
+									// Remote revision changes can occur as a result of a user action (Fetch, Push) but
+									// it can also occur as a result of background action (Auto Fetch). If the tree is
+									// scrolled to the top, we can safely refresh the tree.
+									if (this._tree.scrollTop === 0) {
+										this.refresh();
+										return;
+									}
 
-					store.add(autorun(reader => {
-						const historyItemGroupId = currentHistoryItemGroupId.read(reader);
-						const historyItemGroupRevision = currentHistoryItemGroupRevision.read(reader);
-						const historyItemGroupRemoteId = currentHistoryItemGroupRemoteId.read(reader);
+									// Set the "OUTDATED" description
+									this.updateTitleDescription(localize('outdated', "OUTDATED"));
+								}
+							}));
 
-						if (!historyItemGroupId && !historyItemGroupRevision && !historyItemGroupRemoteId) {
-							return;
-						}
-
-						this.refresh();
-					}));
-
-					store.add(autorun(reader => {
-						const historyItemGroupRemoteRevision = currentHistoryItemGroupRemoteRevision.read(reader);
-
-						if (!historyItemGroupRemoteRevision) {
-							return;
-						}
-
-						// Remote revision changes can occur as a result of a user action (Fetch, Push) but
-						// it can also occur as a result of background action (Auto Fetch). If the tree is
-						// scrolled to the top, we can safely refresh the tree.
-						if (this._tree.scrollTop === 0) {
-							this.refresh();
-							return;
-						}
-
-						// Set the "OUTDATED" description
-						this.updateTitleDescription(localize('outdated', "OUTDATED"));
-					}));
-
-
-					this.updateActions();
-					this.updateTitleDescription(undefined);
-					this._scmProviderCtx.set(repository.provider.contextValue);
-
-					this._updateChildren();
+							if (changeSummary.refresh) {
+								this.refresh();
+							}
+						}));
 				}));
 			} else {
 				this._visibilityDisposables.clear();
@@ -859,6 +860,7 @@ export class SCMHistoryViewPane extends ViewPane {
 	async refresh(): Promise<void> {
 		await this._updateChildren(true);
 
+		this.updateActions();
 		this.updateTitleDescription(undefined);
 		this._tree.scrollTop = 0;
 	}
