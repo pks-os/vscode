@@ -16,7 +16,7 @@ import { fromNow } from '../../../../base/common/date.js';
 import { createMatches, FuzzyScore, IMatch } from '../../../../base/common/filters.js';
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { Disposable, DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
-import { autorun, autorunDelta, autorunWithStore, autorunWithStoreHandleChanges, derived, IObservable, observableValue } from '../../../../base/common/observable.js';
+import { autorun, autorunWithStore, autorunWithStoreHandleChanges, derived, derivedOpts, IObservable, observableValue } from '../../../../base/common/observable.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
@@ -59,6 +59,7 @@ import { Event } from '../../../../base/common/event.js';
 import { Iterable } from '../../../../base/common/iterator.js';
 import { clamp } from '../../../../base/common/numbers.js';
 import { observableConfigValue } from '../../../../platform/observable/common/platformObservableUtils.js';
+import { structuralEquals } from '../../../../base/common/equals.js';
 
 type TreeElement = SCMHistoryItemViewModelTreeElement | SCMHistoryItemLoadMoreTreeElement;
 
@@ -573,7 +574,33 @@ class SCMHistoryViewModel extends Disposable {
 	 * values are updated in the same transaction (or during the initial read of the observable value).
 	 */
 	readonly repository = latestChangedValue(this, [this._firstRepository, this._graphRepository]);
-	private readonly _historyItemGroupIds = observableValue<'all' | 'auto' | string[]>(this, 'auto');
+
+	private readonly _historyItemGroupFilter = observableValue<'all' | 'auto' | string[]>(this, 'auto');
+
+	readonly historyItemGroupFilter = derived<string[]>(reader => {
+		const filter = this._historyItemGroupFilter.read(reader);
+		if (Array.isArray(filter)) {
+			return filter;
+		}
+
+		if (filter === 'all') {
+			return [];
+		}
+
+		const repository = this.repository.get();
+		const historyProvider = repository?.provider.historyProvider.get();
+		const currentHistoryItemGroup = historyProvider?.currentHistoryItemGroup.get();
+
+		if (!currentHistoryItemGroup) {
+			return [];
+		}
+
+		return [
+			currentHistoryItemGroup.revision ?? currentHistoryItemGroup.id,
+			...currentHistoryItemGroup.remote ? [currentHistoryItemGroup.remote.revision ?? currentHistoryItemGroup.remote.id] : [],
+			...currentHistoryItemGroup.base ? [currentHistoryItemGroup.base.revision ?? currentHistoryItemGroup.base.id] : [],
+		];
+	});
 
 	private readonly _state = new Map<ISCMRepository, HistoryItemState>();
 
@@ -632,13 +659,9 @@ class SCMHistoryViewModel extends Disposable {
 		}
 
 		if (!state || state.loadMore) {
-			const historyItemGroupIds = [
-				currentHistoryItemGroup.revision ?? currentHistoryItemGroup.id,
-				...currentHistoryItemGroup.remote ? [currentHistoryItemGroup.remote.revision ?? currentHistoryItemGroup.remote.id] : [],
-				...currentHistoryItemGroup.base ? [currentHistoryItemGroup.base.revision ?? currentHistoryItemGroup.base.id] : [],
-			];
-
 			const existingHistoryItems = state?.items ?? [];
+
+			const historyItemGroupIds = this.historyItemGroupFilter.get();
 			const limit = clamp(this._configurationService.getValue<number>('scm.graph.pageSize'), 1, 1000);
 
 			const historyItems = await historyProvider.provideHistoryItems({
@@ -655,7 +678,7 @@ class SCMHistoryViewModel extends Disposable {
 		}
 
 		// Create the color map
-		const colorMap = this._getHistoryItemsColorMap(currentHistoryItemGroup);
+		const colorMap = this._getGraphColorMap(currentHistoryItemGroup);
 
 		return toISCMHistoryItemViewModelArray(state.items, colorMap)
 			.map(historyItemViewModel => ({
@@ -669,11 +692,7 @@ class SCMHistoryViewModel extends Disposable {
 		this._selectedRepository.set(repository, undefined);
 	}
 
-	private _getHistoryItemsColorMap(currentHistoryItemGroup: ISCMHistoryItemGroup): Map<string, ColorIdentifier> {
-		if (this._historyItemGroupIds.get() !== 'auto') {
-			return new Map<string, ColorIdentifier>();
-		}
-
+	private _getGraphColorMap(currentHistoryItemGroup: ISCMHistoryItemGroup): Map<string, ColorIdentifier> {
 		const colorMap = new Map<string, ColorIdentifier>([
 			[currentHistoryItemGroup.name, historyItemGroupLocal]
 		]);
@@ -682,6 +701,9 @@ class SCMHistoryViewModel extends Disposable {
 		}
 		if (currentHistoryItemGroup.base) {
 			colorMap.set(currentHistoryItemGroup.base.name, historyItemGroupBase);
+		}
+		if (this._historyItemGroupFilter.get() === 'all') {
+			colorMap.set('*', '');
 		}
 
 		return colorMap;
@@ -798,34 +820,56 @@ export class SCMHistoryViewPane extends ViewPane {
 							// Update context
 							this._scmProviderCtx.set(repository.provider.contextValue);
 
+							// Checkout, Commit, and Publish
+							const historyItemGroup = derivedOpts<{ id: string; revision?: string; remoteId?: string } | undefined>({
+								owner: this,
+								equalsFn: structuralEquals
+							}, reader => {
+								const currentHistoryItemGroup = historyProvider.currentHistoryItemGroup.read(reader);
+								return currentHistoryItemGroup ? {
+									id: currentHistoryItemGroup.id,
+									revision: currentHistoryItemGroup.revision,
+									remoteId: currentHistoryItemGroup.remote?.id
+								} : undefined;
+							});
+
+							// Fetch, Push
+							const historyItemRemoteRevision = derived(reader => {
+								return historyProvider.currentHistoryItemGroup.read(reader)?.remote?.revision;
+							});
+
 							// HistoryItemGroup change
-							store.add(autorunDelta(historyProvider.currentHistoryItemGroup, args => {
-								// Skip the first execution
-								if (args.lastValue === undefined) {
-									return;
-								}
+							store.add(
+								autorunWithStoreHandleChanges<{ refresh: boolean | 'ifScrollTop' }>({
+									owner: this,
+									createEmptyChangeSummary: () => ({ refresh: false }),
+									handleChange(context, changeSummary) {
+										changeSummary.refresh = context.didChange(historyItemRemoteRevision) ? 'ifScrollTop' : true;
+										return true;
+									},
+								}, (reader, changeSummary) => {
+									if ((!historyItemGroup.read(reader) && !historyItemRemoteRevision.read(reader)) || changeSummary.refresh === false) {
+										return;
+									}
 
-								if (args.lastValue.id !== args.newValue?.id ||
-									args.lastValue.revision !== args.newValue?.revision ||
-									args.lastValue.remote?.id !== args.newValue?.remote?.id) {
-
-									this.refresh();
-									return;
-								}
-
-								if (args.lastValue?.remote?.revision !== args.newValue?.remote?.revision) {
-									// Remote revision changes can occur as a result of a user action (Fetch, Push) but
-									// it can also occur as a result of background action (Auto Fetch). If the tree is
-									// scrolled to the top, we can safely refresh the tree.
-									if (this._tree.scrollTop === 0) {
+									if (changeSummary.refresh === true) {
 										this.refresh();
 										return;
 									}
 
-									// Set the "OUTDATED" description
-									this.updateTitleDescription(localize('outdated', "OUTDATED"));
-								}
-							}));
+									if (changeSummary.refresh === 'ifScrollTop') {
+										// Remote revision changes can occur as a result of a user action (Fetch, Push) but
+										// it can also occur as a result of background action (Auto Fetch). If the tree is
+										// scrolled to the top, we can safely refresh the tree.
+										if (this._tree.scrollTop === 0) {
+											this.refresh();
+											return;
+										}
+
+										// Set the "OUTDATED" description
+										this.updateTitleDescription(localize('outdated', "OUTDATED"));
+									}
+								}));
 
 							if (changeSummary.refresh) {
 								this.refresh();
