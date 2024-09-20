@@ -862,12 +862,12 @@ export class ReadChatResponseAloud extends Action2 {
 			icon: Codicon.unmute,
 			precondition: CanVoiceChat,
 			menu: [{
-				id: MenuId.ChatMessageTitle,
+				id: MenuId.ChatMessageFooter,
 				when: ContextKeyExpr.and(
 					CanVoiceChat,
 					CONTEXT_RESPONSE,						// only for responses
 					ScopedChatSynthesisInProgress.negate(),	// but not when already in progress
-					CONTEXT_RESPONSE_FILTERED.negate()		// and not when response is filtered
+					CONTEXT_RESPONSE_FILTERED.negate(),		// and not when response is filtered
 				),
 				group: 'navigation'
 			}, {
@@ -890,7 +890,7 @@ export class ReadChatResponseAloud extends Action2 {
 		let response: IChatResponseViewModel | undefined = undefined;
 		if (args.length > 0) {
 			const responseArg = args[0];
-			if (isResponseVM(response)) {
+			if (isResponseVM(responseArg)) {
 				response = responseArg;
 			}
 		} else {
@@ -978,7 +978,7 @@ export class StopReadChatItemAloud extends Action2 {
 			},
 			menu: [
 				{
-					id: MenuId.ChatMessageTitle,
+					id: MenuId.ChatMessageFooter,
 					when: ContextKeyExpr.and(
 						ScopedChatSynthesisInProgress,		// only when in progress
 						CONTEXT_RESPONSE,					// only for responses
@@ -1310,8 +1310,8 @@ export class InstallSpeechProviderForSynthesizeChatAction extends BaseInstallSpe
 			icon: Codicon.unmute,
 			precondition: InstallingSpeechProvider.negate(),
 			menu: [{
-				id: MenuId.ChatMessageTitle,
-				when: HasSpeechProvider.negate(),
+				id: MenuId.ChatMessageFooter,
+				when: ContextKeyExpr.and(CONTEXT_RESPONSE, HasSpeechProvider.negate()),
 				group: 'navigation'
 			}]
 		});
