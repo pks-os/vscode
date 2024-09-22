@@ -77,7 +77,7 @@ const INPUT_EDITOR_MAX_HEIGHT = 250;
 
 interface IChatInputPartOptions {
 	renderFollowups: boolean;
-	renderStyle?: 'default' | 'compact';
+	renderStyle?: 'compact';
 	menus: {
 		executeToolbar: MenuId;
 		inputSideToolbar?: MenuId;
@@ -135,6 +135,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private _inputPartHeight: number = 0;
 	get inputPartHeight() {
 		return this._inputPartHeight;
+	}
+
+	private _followupsHeight: number = 0;
+	get followupsHeight() {
+		return this._followupsHeight;
 	}
 
 	private _inputEditor!: CodeEditorWidget;
@@ -348,7 +353,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 		this._onDidLoadInputState.fire(historyEntry.state);
 		if (previous) {
-			this._inputEditor.setPosition({ lineNumber: 1, column: 1 });
+			// Set cursor to the end of the first view line, so if wrapped, it's the point where the line wraps
+			const endOfFirstLine = this._inputEditor._getViewModel()?.getLineLength(1) ?? 1;
+			this._inputEditor.setPosition({ lineNumber: 1, column: endOfFirstLine });
 		} else {
 			const model = this._inputEditor.getModel();
 			if (!model) {
@@ -629,7 +636,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				return;
 			}
 
-			const atTop = position.column === 1 && position.lineNumber === 1;
+			const atTop = position.lineNumber === 1 && position.column - 1 <= (this._inputEditor._getViewModel()?.getLineLength(1) ?? 0);
 			this.chatCursorAtTop.set(atTop);
 
 			this.historyNavigationBackwardsEnablement.set(atTop);
@@ -881,6 +888,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this.followupsContainer.style.width = `${followupsWidth}px`;
 
 		this._inputPartHeight = data.inputPartVerticalPadding + data.followupsHeight + inputEditorHeight + data.inputEditorBorder + data.attachmentsHeight + data.toolbarsHeight + data.chatEditingStateHeight;
+		this._followupsHeight = data.followupsHeight;
 
 		const initialEditorScrollWidth = this._inputEditor.getScrollWidth();
 		const newEditorWidth = width - data.inputPartHorizontalPadding - data.editorBorder - data.inputPartHorizontalPaddingInside - data.toolbarsWidth - data.sideToolbarWidth;
