@@ -49,6 +49,7 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ServiceCollection } from '../../../../platform/instantiation/common/serviceCollection.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
+import { WorkbenchList } from '../../../../platform/list/browser/listService.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
@@ -67,6 +68,7 @@ import { IChatHistoryEntry, IChatWidgetHistoryService } from '../common/chatWidg
 import { ILanguageModelChatMetadata, ILanguageModelsService } from '../common/languageModels.js';
 import { CancelAction, ChatModelPickerActionId, ChatSubmitSecondaryAgentAction, IChatExecuteActionContext, SubmitAction } from './actions/chatExecuteActions.js';
 import { IChatWidget } from './chat.js';
+import { IDisposableReference } from './chatContentParts/chatCollections.js';
 import { CollapsibleListPool, IChatCollapsibleListItem } from './chatContentParts/chatReferencesContentPart.js';
 import { ChatEditingAcceptAllAction, ChatEditingDiscardAllAction, ChatEditingShowChangesAction } from './chatEditingService.js';
 import { ChatFollowups } from './chatFollowups.js';
@@ -197,6 +199,18 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 	private readonly _chatEditsDisposables = this._register(new DisposableStore());
 	private _chatEditsListPool: CollapsibleListPool;
+	private _chatEditList: IDisposableReference<WorkbenchList<IChatCollapsibleListItem>> | undefined;
+	get selectedElements(): URI[] {
+		const edits = [];
+		const editsList = this._chatEditList?.object;
+		const selectedElements = editsList?.getSelectedElements() ?? [];
+		for (const element of selectedElements) {
+			if (element.kind === 'reference' && URI.isUri(element.reference)) {
+				edits.push(element.reference);
+			}
+		}
+		return edits;
+	}
 
 	constructor(
 		// private readonly editorOptions: ChatEditorOptions, // TODO this should be used
@@ -235,7 +249,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			}
 		}));
 
-		this._chatEditsListPool = this._register(this.instantiationService.createInstance(CollapsibleListPool, this._onDidChangeVisibility.event));
+		this._chatEditsListPool = this._register(this.instantiationService.createInstance(CollapsibleListPool, this._onDidChangeVisibility.event, MenuId.ChatEditingSessionWidgetToolbar));
 	}
 
 	private setCurrentLanguageModelToDefault() {
@@ -374,16 +388,24 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this.inHistoryNavigation = false;
 
 		this._onDidLoadInputState.fire(historyEntry.state);
-		if (previous) {
-			// Set cursor to the end of the first view line, so if wrapped, it's the point where the line wraps
-			const endOfFirstLine = this._inputEditor._getViewModel()?.getLineLength(1) ?? 1;
-			this._inputEditor.setPosition({ lineNumber: 1, column: endOfFirstLine });
-		} else {
-			const model = this._inputEditor.getModel();
-			if (!model) {
-				return;
-			}
 
+		const model = this._inputEditor.getModel();
+		if (!model) {
+			return;
+		}
+
+		if (previous) {
+			const endOfFirstViewLine = this._inputEditor._getViewModel()?.getLineLength(1) ?? 1;
+			const endOfFirstModelLine = model.getLineLength(1);
+			if (endOfFirstViewLine === endOfFirstModelLine) {
+				// Not wrapped - set cursor to the end of the first line
+				this._inputEditor.setPosition({ lineNumber: 1, column: endOfFirstViewLine + 1 });
+			} else {
+				// Wrapped - set cursor one char short of the end of the first view line.
+				// If it's after the next character, the cursor shows on the second line.
+				this._inputEditor.setPosition({ lineNumber: 1, column: endOfFirstViewLine });
+			}
+		} else {
 			this._inputEditor.setPosition(getLastPosition(model));
 		}
 	}
@@ -730,7 +752,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				widget.tabIndex = 0;
 
 				if (!this.attachedContextDisposables.isDisposed) {
-					this.attachedContextDisposables.add(this.hoverService.setupManagedHover(hoverDelegate, widget, hoverElement));
+					this.attachedContextDisposables.add(this.hoverService.setupManagedHover(hoverDelegate, widget, hoverElement, { trapFocus: false }));
 
 					// No delay for keyboard
 					this.attachedContextDisposables.add(dom.addDisposableListener(widget, 'keydown', (event) => {
@@ -780,6 +802,10 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				}
 			}
 
+			if (this._attachedContext.size === 0) {
+				this.focus();
+			}
+
 			this._onDidChangeHeight.fire();
 			this._onDidChangeContext.fire({ removed: [attachment] });
 		});
@@ -807,6 +833,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		dom.clearNode(this.chatEditingSessionWidgetContainer);
 		dom.setVisibility(Boolean(chatEditingSession), this.chatEditingSessionWidgetContainer);
 		this._chatEditsDisposables.clear();
+		this._chatEditList = undefined;
 		if (!chatEditingSession) {
 			return;
 		}
@@ -868,11 +895,15 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		dom.append(actionsContainer, clearButton.element);
 
 		// List of edited files
+		if (!editedFiles.length) {
+			return;
+		}
 		const entries: IChatCollapsibleListItem[] = editedFiles.map((entry) => ({
 			reference: entry.modifiedURI,
 			kind: 'reference',
 		}));
 		const editedFilesList = this._chatEditsListPool.get();
+		this._chatEditList = editedFilesList;
 		const list = editedFilesList.object;
 		this._chatEditsDisposables.add(editedFilesList);
 		this._chatEditsDisposables.add(list.onDidOpen((e) => {

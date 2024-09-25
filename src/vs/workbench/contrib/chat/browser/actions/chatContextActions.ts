@@ -36,8 +36,7 @@ import { AnythingQuickAccessProvider } from '../../../search/browser/anythingQui
 import { ISymbolQuickPickItem, SymbolsQuickAccessProvider } from '../../../search/browser/symbolsQuickAccess.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IClipboardService } from '../../../../../platform/clipboard/common/clipboardService.js';
-import { isImage } from '../chatImagePaste.js';
-import { hash } from '../../../../../base/common/hash.js';
+import { imageToHash, isImage } from '../chatImagePaste.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { ActiveEditorContext } from '../../../../common/contextkeys.js';
 
@@ -286,7 +285,7 @@ class AttachContextAction extends Action2 {
 			} else if ('kind' in pick && pick.kind === 'image') {
 				const fileBuffer = await clipboardService.readImage();
 				toAttach.push({
-					id: hash(fileBuffer).toString(),
+					id: await imageToHash(fileBuffer),
 					name: localize('pastedImage', 'Pasted Image'),
 					fullName: localize('pastedImage', 'Pasted Image'),
 					value: fileBuffer,
@@ -345,7 +344,7 @@ class AttachContextAction extends Action2 {
 
 		if (isImage(imageData) && configurationService.getValue<boolean>('chat.experimental.imageAttachments')) {
 			quickPickItems.push({
-				id: hash(imageData).toString(),
+				id: await imageToHash(imageData),
 				kind: 'image',
 				label: localize('imageFromClipboard', 'Image from Clipboard'),
 				iconClass: ThemeIcon.asClassName(Codicon.fileMedia),
@@ -431,10 +430,10 @@ class AttachContextAction extends Action2 {
 			const second = extractTextFromIconLabel(b.label).toUpperCase();
 
 			return compare(first, second);
-		}), '', clipboardService);
+		}), clipboardService, '');
 	}
 
-	private _show(quickInputService: IQuickInputService, commandService: ICommandService, widget: IChatWidget, quickChatService: IQuickChatService, quickPickItems: (IChatContextQuickPickItem | QuickPickItem)[], query: string = '', clipboardService?: IClipboardService) {
+	private _show(quickInputService: IQuickInputService, commandService: ICommandService, widget: IChatWidget, quickChatService: IQuickChatService, quickPickItems: (IChatContextQuickPickItem | QuickPickItem)[], clipboardService: IClipboardService, query: string = '') {
 
 		quickInputService.quickAccess.show(query, {
 			enabledProviderPrefixes: [
@@ -446,7 +445,7 @@ class AttachContextAction extends Action2 {
 			providerOptions: <AnythingQuickAccessProviderRunOptions>{
 				handleAccept: (item: IChatContextQuickPickItem) => {
 					if ('prefix' in item) {
-						this._show(quickInputService, commandService, widget, quickChatService, quickPickItems, item.prefix);
+						this._show(quickInputService, commandService, widget, quickChatService, quickPickItems, clipboardService, item.prefix);
 					} else {
 						if (!clipboardService) {
 							return;
