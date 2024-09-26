@@ -108,8 +108,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -156,8 +165,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -204,8 +222,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "boolean",
@@ -257,8 +284,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -291,8 +327,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -325,8 +370,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "boolean",
@@ -352,13 +406,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -414,13 +468,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -476,13 +530,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -614,8 +668,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -662,8 +725,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -710,8 +782,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "string",
@@ -758,8 +839,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "string",
@@ -806,8 +896,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "string",
@@ -854,8 +953,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -902,8 +1010,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -950,8 +1067,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -1032,13 +1158,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1096,13 +1222,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1160,13 +1286,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1252,13 +1378,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1344,13 +1470,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1436,13 +1562,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1500,13 +1626,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1564,13 +1690,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1628,13 +1754,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1673,13 +1799,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1719,13 +1845,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1825,13 +1951,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -1878,8 +2004,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "Cell",
@@ -2015,13 +2150,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -2138,8 +2273,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "void",
@@ -2160,13 +2304,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -2205,13 +2349,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -2258,8 +2402,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "Cell",
@@ -2325,13 +2478,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -2439,13 +2592,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -2511,13 +2664,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -2630,13 +2783,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -2681,13 +2834,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -2770,8 +2923,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "Cell",
@@ -2837,13 +2999,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -3472,8 +3634,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "Cell",
@@ -4042,13 +4213,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -4333,8 +4504,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -4367,8 +4547,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "number",
@@ -4547,13 +4736,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -4618,13 +4807,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -4701,13 +4890,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5015,13 +5204,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5246,13 +5435,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5613,8 +5802,17 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "Cell",
@@ -5659,13 +5857,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5723,13 +5921,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5768,13 +5966,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5813,13 +6011,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5849,13 +6047,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5911,13 +6109,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -5947,13 +6145,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6043,13 +6241,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6122,13 +6320,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6158,13 +6356,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6194,13 +6392,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6235,13 +6433,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6326,18 +6524,27 @@
 	},
 	{
 		"c": "?",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional keyword.operator.ternary",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6362,18 +6569,27 @@
 	},
 	{
 		"c": ":",
-		"t": "punctuation.delimiter",
-		"r": {}
+		"t": "punctuation.delimiter keyword.operator.optional keyword.operator.ternary",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000"
+		}
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6403,13 +6619,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6499,13 +6715,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6578,13 +6794,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6614,13 +6830,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
@@ -6650,13 +6866,13 @@
 	},
 	{
 		"c": "this",
-		"t": "variable.language",
+		"t": "variable.language.this",
 		"r": {
 			"dark_plus": "variable.language: #569CD6",
 			"light_plus": "variable.language: #0000FF",
 			"dark_vs": "variable.language: #569CD6",
 			"light_vs": "variable.language: #0000FF",
-			"hc_black": "variable: #9CDCFE",
+			"hc_black": "variable.language.this: #569CD6",
 			"dark_modern": "variable.language: #569CD6",
 			"hc_light": "variable.language: #0F4A85",
 			"light_modern": "variable.language: #0000FF"
