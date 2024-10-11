@@ -238,8 +238,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 	renderTemplate(container: HTMLElement): IChatListItemTemplate {
 		const templateDisposables = new DisposableStore();
-		const rowContainer = dom.append(container, $('.interactive-item-container'));
 		const disabledOverlay = dom.append(container, $('.disabled-overlay'));
+		const rowContainer = dom.append(container, $('.interactive-item-container'));
 		if (this.rendererOptions.renderStyle === 'compact') {
 			rowContainer.classList.add('interactive-item-compact');
 		}
@@ -395,11 +395,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			this.renderDetail(element, templateData);
 		}
 
-		if (element.isDisabled) {
-			templateData.disabledOverlay.classList.add('disabled');
-		} else {
-			templateData.disabledOverlay.classList.remove('disabled');
-		}
+		templateData.disabledOverlay.classList.toggle('disabled', element.isDisabled);
 
 		if (isRequestVM(element) && element.confirmation) {
 			this.renderConfirmationAction(element, templateData);
