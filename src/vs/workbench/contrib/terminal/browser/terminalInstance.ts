@@ -2458,7 +2458,7 @@ interface ITerminalLabelTemplateProperties {
 	separator?: string | ISeparator | null | undefined;
 	shellType?: string | undefined;
 	shellCommand?: string | undefined;
-	shellPrompt?: string | undefined;
+	shellPromptInput?: string | undefined;
 }
 
 const enum TerminalLabelType {
@@ -2498,7 +2498,8 @@ export class TerminalLabelComputer extends Disposable {
 		reset?: boolean
 	) {
 		const type = instance.shellLaunchConfig.attachPersistentProcess?.type || instance.shellLaunchConfig.type;
-		const promptInputModel = instance.capabilities.get(TerminalCapability.CommandDetection)?.promptInputModel;
+		const commandDetection = instance.capabilities.get(TerminalCapability.CommandDetection);
+		const promptInputModel = commandDetection?.promptInputModel;
 		const templateProperties: ITerminalLabelTemplateProperties = {
 			cwd: instance.cwd || instance.initialCwd || '',
 			cwdFolder: '',
@@ -2513,8 +2514,8 @@ export class TerminalLabelComputer extends Disposable {
 				: (instance.fixedRows ? `\u2195${instance.fixedRows}` : ''),
 			separator: { label: this._terminalConfigurationService.config.tabs.separator },
 			shellType: instance.shellType,
-			shellCommand: promptInputModel?.value,
-			shellPrompt: promptInputModel?.getCombinedString(true),
+			shellCommand: commandDetection?.executingCommand && promptInputModel ? `${promptInputModel.value} $(loading~spin)` : undefined,
+			shellPromptInput: commandDetection?.executingCommand && promptInputModel ? `${promptInputModel.getCombinedString(true)} $(loading~spin)` : promptInputModel?.getCombinedString(true),
 		};
 		templateProperties.workspaceFolderName = instance.workspaceFolder?.name ?? templateProperties.workspaceFolder;
 		labelTemplate = labelTemplate.trim();
