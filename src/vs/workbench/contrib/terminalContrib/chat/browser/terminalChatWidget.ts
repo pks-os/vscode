@@ -15,7 +15,7 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { ChatAgentLocation } from '../../../chat/common/chatAgents.js';
 import { InlineChatWidget } from '../../../inlineChat/browser/inlineChatWidget.js';
 import { ITerminalInstance, type IXtermTerminal } from '../../../terminal/browser/terminal.js';
-import { MENU_TERMINAL_CHAT_WIDGET, MENU_TERMINAL_CHAT_WIDGET_STATUS, TerminalChatCommandId, TerminalChatContextKeys } from './terminalChat.js';
+import { MENU_TERMINAL_CHAT_WIDGET_INPUT_SIDE_TOOLBAR, MENU_TERMINAL_CHAT_WIDGET_STATUS, TerminalChatCommandId, TerminalChatContextKeys } from './terminalChat.js';
 import { TerminalStickyScrollContribution } from '../../stickyScroll/browser/terminalStickyScrollContribution.js';
 import { MENU_INLINE_CHAT_WIDGET_SECONDARY } from '../../../inlineChat/common/inlineChat.js';
 import { CancelablePromise, createCancelablePromise, DeferredPromise } from '../../../../../base/common/async.js';
@@ -27,6 +27,7 @@ import { IChatService, IChatProgress } from '../../../chat/common/chatService.js
 import { CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { MenuId } from '../../../../../platform/actions/common/actions.js';
 import type { IChatViewState } from '../../../chat/browser/chatWidget.js';
+import { autorun, observableValue, type IObservable } from '../../../../../base/common/observable.js';
 
 const enum Constants {
 	HorizontalMargin = 10,
@@ -44,7 +45,6 @@ const enum Message {
 	ReturnInput = 1 << 6,
 }
 
-const terminalChatPlaceholder = localize('default.placeholder', "Ask how to do something in the terminal");
 export class TerminalChatWidget extends Disposable {
 
 	private readonly _container: HTMLElement;
@@ -66,9 +66,7 @@ export class TerminalChatWidget extends Disposable {
 
 	private _messages = this._store.add(new Emitter<Message>());
 
-	private _historyStorageKey = 'terminal-inline-chat-history';
 	private _viewStateStorageKey = 'terminal-inline-chat-view-state';
-	private _promptHistory: string[] = [];
 
 	private _lastResponseContent: string | undefined;
 	get lastResponseContent(): string | undefined {
@@ -80,12 +78,12 @@ export class TerminalChatWidget extends Disposable {
 	private readonly _model: MutableDisposable<ChatModel> = this._register(new MutableDisposable());
 
 	private _sessionCtor: CancelablePromise<void> | undefined;
-	private _historyOffset: number = -1;
-	private _historyCandidate: string = '';
-	private _historyUpdate: (prompt: string) => void;
 
 	private _currentRequestId: string | undefined;
 	private _activeRequestCts?: CancellationTokenSource;
+
+	private readonly _requestInProgress = observableValue(this, false);
+	readonly requestInProgress: IObservable<boolean> = this._requestInProgress;
 
 	constructor(
 		private readonly _terminalElement: HTMLElement,
@@ -104,7 +102,7 @@ export class TerminalChatWidget extends Disposable {
 
 		this._container = document.createElement('div');
 		this._container.classList.add('terminal-inline-chat');
-		_terminalElement.appendChild(this._container);
+		this._terminalElement.appendChild(this._container);
 
 		this._inlineChatWidget = instantiationService.createInstance(
 			InlineChatWidget,
@@ -119,13 +117,9 @@ export class TerminalChatWidget extends Disposable {
 				statusMenuId: {
 					menu: MENU_TERMINAL_CHAT_WIDGET_STATUS,
 					options: {
-						buttonConfigProvider: action => {
-							if (action.id === TerminalChatCommandId.ViewInChat || action.id === TerminalChatCommandId.RunCommand || action.id === TerminalChatCommandId.RunFirstCommand) {
-								return { isSecondary: false };
-							} else {
-								return { isSecondary: true };
-							}
-						}
+						buttonConfigProvider: action => ({
+							isSecondary: action.id !== TerminalChatCommandId.RunCommand && action.id !== TerminalChatCommandId.RunFirstCommand
+						})
 					}
 				},
 				secondaryMenuId: MENU_INLINE_CHAT_WIDGET_SECONDARY,
@@ -134,7 +128,7 @@ export class TerminalChatWidget extends Disposable {
 					menus: {
 						telemetrySource: 'terminal-inline-chat',
 						executeToolbar: MenuId.ChatExecute,
-						inputSideToolbar: MENU_TERMINAL_CHAT_WIDGET,
+						inputSideToolbar: MENU_TERMINAL_CHAT_WIDGET_INPUT_SIDE_TOOLBAR,
 					}
 				}
 			},
@@ -151,30 +145,39 @@ export class TerminalChatWidget extends Disposable {
 		observer.observe(this._terminalElement);
 		this._register(toDisposable(() => observer.disconnect()));
 
-		this._reset();
+		this._resetPlaceholder();
 		this._container.appendChild(this._inlineChatWidget.domNode);
 
 		this._focusTracker = this._register(trackFocus(this._container));
 		this._register(this._focusTracker.onDidFocus(() => this._focusedContextKey.set(true)));
 		this._register(this._focusTracker.onDidBlur(() => this._focusedContextKey.set(false)));
 
+		this._register(autorun(r => {
+			const isBusy = this._inlineChatWidget.requestInProgress.read(r);
+			this._container.classList.toggle('busy', isBusy);
+
+			this._inlineChatWidget.toggleStatus(!!this._inlineChatWidget.responseContent);
+
+			if (isBusy || !this._inlineChatWidget.responseContent) {
+				this._responseContainsCodeBlockContextKey.set(false);
+				this._responseContainsMulitpleCodeBlocksContextKey.set(false);
+			} else {
+				Promise.all([
+					this._inlineChatWidget.getCodeBlockInfo(0),
+					this._inlineChatWidget.getCodeBlockInfo(1)
+				]).then(([firstCodeBlock, secondCodeBlock]) => {
+					this._responseContainsCodeBlockContextKey.set(!!firstCodeBlock);
+					this._responseContainsMulitpleCodeBlocksContextKey.set(!!secondCodeBlock);
+					this._inlineChatWidget.updateToolbar(true);
+				});
+			}
+		}));
+
 		this.hide();
 
 		this._requestActiveContextKey = TerminalChatContextKeys.requestActive.bindTo(this._contextKeyService);
 		this._responseContainsCodeBlockContextKey = TerminalChatContextKeys.responseContainsCodeBlock.bindTo(this._contextKeyService);
 		this._responseContainsMulitpleCodeBlocksContextKey = TerminalChatContextKeys.responseContainsMultipleCodeBlocks.bindTo(this._contextKeyService);
-
-		this._promptHistory = JSON.parse(this._storageService.get(this._historyStorageKey, StorageScope.PROFILE, '[]'));
-		this._historyUpdate = (prompt: string) => {
-			const idx = this._promptHistory.indexOf(prompt);
-			if (idx >= 0) {
-				this._promptHistory.splice(idx, 1);
-			}
-			this._promptHistory.unshift(prompt);
-			this._historyOffset = -1;
-			this._historyCandidate = '';
-			this._storageService.store(this._historyStorageKey, JSON.stringify(this._promptHistory), StorageScope.PROFILE, StorageTarget.USER);
-		};
 	}
 
 	private _dimension?: Dimension;
@@ -191,8 +194,9 @@ export class TerminalChatWidget extends Disposable {
 			return;
 		}
 		const style = getActiveWindow().getComputedStyle(xtermElement);
-		const xtermPadding = parseInt(style.paddingLeft) + parseInt(style.paddingRight);
-		const width = Math.min(640, xtermElement.clientWidth - 12/* padding */ - 2/* border */ - Constants.HorizontalMargin - xtermPadding);
+		const xtermLeftPadding = parseInt(style.paddingLeft);
+		// TODO: Remove magic number https://github.com/microsoft/vscode/issues/233206
+		const width = xtermElement.clientWidth - xtermLeftPadding - 12;
 		const terminalWrapperHeight = this._getTerminalWrapperHeight() ?? Number.MAX_SAFE_INTEGER;
 		let height = Math.min(480, heightInPixel, terminalWrapperHeight);
 		const top = this._getTop() ?? 0;
@@ -209,14 +213,14 @@ export class TerminalChatWidget extends Disposable {
 				adjustedHeight = height;
 			}
 		}
-		this._container.style.paddingLeft = style.paddingLeft;
 		this._dimension = new Dimension(width, height);
 		this._inlineChatWidget.layout(this._dimension);
+		this._inlineChatWidget.domNode.style.paddingLeft = `${xtermLeftPadding}px`;
 		this._updateVerticalPosition(adjustedHeight);
 	}
 
-	private _reset() {
-		this.inlineChatWidget.placeholder = terminalChatPlaceholder;
+	private _resetPlaceholder() {
+		this.inlineChatWidget.placeholder = this._model.value?.welcomeMessage?.title ?? localize('askAI', 'Ask AI');
 	}
 
 	async reveal(viewState?: IChatViewState): Promise<void> {
@@ -224,7 +228,7 @@ export class TerminalChatWidget extends Disposable {
 		this._doLayout(this._inlineChatWidget.contentHeight);
 		this._container.classList.remove('hide');
 		this._visibleContextKey.set(true);
-		this.inlineChatWidget.placeholder = terminalChatPlaceholder;
+		this._resetPlaceholder();
 		this._inlineChatWidget.focus();
 		this._instance.scrollToBottom();
 	}
@@ -268,7 +272,7 @@ export class TerminalChatWidget extends Disposable {
 	hide(): void {
 		this._container.classList.add('hide');
 		this._inlineChatWidget.reset();
-		this._reset();
+		this._resetPlaceholder();
 		this._inlineChatWidget.updateToolbar(false);
 		this._visibleContextKey.set(false);
 		this._inlineChatWidget.value = '';
@@ -305,7 +309,7 @@ export class TerminalChatWidget extends Disposable {
 		}
 		const value = code.getValue();
 		this._instance.runCommand(value, shouldExecute);
-		this.hide();
+		this.clear();
 	}
 
 	public get focusTracker(): IFocusTracker {
@@ -345,29 +349,6 @@ export class TerminalChatWidget extends Disposable {
 		this._storageService.store(this._viewStateStorageKey, JSON.stringify(this._inlineChatWidget.chatWidget.getViewState()), StorageScope.PROFILE, StorageTarget.USER);
 	}
 
-	private _forcedPlaceholder: string | undefined = undefined;
-
-	private _updatePlaceholder(): void {
-		const inlineChatWidget = this._inlineChatWidget;
-		if (inlineChatWidget) {
-			inlineChatWidget.placeholder = this._getPlaceholderText();
-		}
-	}
-
-	private _getPlaceholderText(): string {
-		return this._forcedPlaceholder ?? '';
-	}
-
-	setPlaceholder(text: string): void {
-		this._forcedPlaceholder = text;
-		this._updatePlaceholder();
-	}
-
-	resetPlaceholder(): void {
-		this._forcedPlaceholder = undefined;
-		this._updatePlaceholder();
-	}
-
 	clear(): void {
 		this.cancel();
 		this._model.clear();
@@ -386,7 +367,6 @@ export class TerminalChatWidget extends Disposable {
 		if (!lastInput) {
 			return;
 		}
-		this._historyUpdate(lastInput);
 		this._activeRequestCts?.cancel();
 		this._activeRequestCts = new CancellationTokenSource();
 		const store = new DisposableStore();
@@ -426,40 +406,6 @@ export class TerminalChatWidget extends Disposable {
 		} finally {
 			store.dispose();
 		}
-	}
-
-	populateHistory(up: boolean) {
-		if (!this._inlineChatWidget) {
-			return;
-		}
-
-		const len = this._promptHistory.length;
-		if (len === 0) {
-			return;
-		}
-
-		if (this._historyOffset === -1) {
-			// remember the current value
-			this._historyCandidate = this._inlineChatWidget.value;
-		}
-
-		const newIdx = this._historyOffset + (up ? 1 : -1);
-		if (newIdx >= len) {
-			// reached the end
-			return;
-		}
-
-		let entry: string;
-		if (newIdx < 0) {
-			entry = this._historyCandidate;
-			this._historyOffset = -1;
-		} else {
-			entry = this._promptHistory[newIdx];
-			this._historyOffset = newIdx;
-		}
-
-		this._inlineChatWidget.value = entry;
-		this._inlineChatWidget.selectAll();
 	}
 
 	cancel(): void {
