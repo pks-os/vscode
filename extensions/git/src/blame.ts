@@ -3,14 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DecorationOptions, l10n, Position, Range, TextEditor, TextEditorChange, TextEditorDecorationType, TextEditorChangeKind, ThemeColor, Uri, window, workspace, EventEmitter, ConfigurationChangeEvent, StatusBarItem, StatusBarAlignment, Command } from 'vscode';
+import { DecorationOptions, l10n, Position, Range, TextEditor, TextEditorChange, TextEditorDecorationType, TextEditorChangeKind, ThemeColor, Uri, window, workspace, EventEmitter, ConfigurationChangeEvent, StatusBarItem, StatusBarAlignment, Command, MarkdownString, commands, LineChange } from 'vscode';
 import { Model } from './model';
 import { dispose, fromNow, IDisposable, pathEquals } from './util';
 import { Repository } from './repository';
 import { throttle } from './decorators';
 import { BlameInformation } from './git';
-
-const notCommittedYetId = '0000000000000000000000000000000000000000';
 
 function isLineChanged(lineNumber: number, changes: readonly TextEditorChange[]): boolean {
 	for (const change of changes) {
@@ -64,36 +62,44 @@ function mapLineNumber(lineNumber: number, changes: readonly TextEditorChange[])
 	return lineNumber;
 }
 
-function processTextEditorChangesWithBlameInformation(blameInformation: BlameInformation[], changes: readonly TextEditorChange[]): TextEditorChange[] {
-	const [notYetCommittedBlameInformation] = blameInformation.filter(b => b.id === notCommittedYetId);
-	if (!notYetCommittedBlameInformation) {
-		return [...changes];
+function getBlameInformationHover(documentUri: Uri, blameInformation: BlameInformation | string): MarkdownString {
+	if (typeof blameInformation === 'string') {
+		return new MarkdownString(blameInformation, true);
 	}
 
-	const changesWithBlameInformation: TextEditorChange[] = [];
-	for (const change of changes) {
-		const originalStartLineNumber = mapLineNumber(change.originalStartLineNumber, changes);
-		const originalEndLineNumber = mapLineNumber(change.originalEndLineNumber, changes);
+	const markdownString = new MarkdownString();
+	markdownString.supportThemeIcons = true;
+	markdownString.isTrusted = true;
 
-		if (notYetCommittedBlameInformation.ranges.some(range =>
-			range.startLineNumber === originalStartLineNumber && range.endLineNumber === originalEndLineNumber)) {
-			continue;
+	if (blameInformation.authorName) {
+		markdownString.appendMarkdown(`$(account) **${blameInformation.authorName}**`);
+
+		if (blameInformation.date) {
+			const dateString = new Date(blameInformation.date).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+			markdownString.appendMarkdown(`, $(history) ${fromNow(blameInformation.date, true, true)} (${dateString})`);
 		}
 
-		changesWithBlameInformation.push(change);
+		markdownString.appendMarkdown('\n\n');
 	}
 
-	return changesWithBlameInformation;
+	markdownString.appendMarkdown(`${blameInformation.message}\n\n`);
+	markdownString.appendMarkdown(`---\n\n`);
+
+	markdownString.appendMarkdown(`[$(eye) View Commit](command:git.blameStatusBarItem.viewCommit?${encodeURIComponent(JSON.stringify([documentUri, blameInformation.id]))})`);
+	markdownString.appendMarkdown('&nbsp;&nbsp;|&nbsp;&nbsp;');
+	markdownString.appendMarkdown(`[$(copy) ${blameInformation.id.substring(0, 8)}](command:git.blameStatusBarItem.copyContent?${encodeURIComponent(JSON.stringify(blameInformation.id))})`);
+
+	if (blameInformation.message) {
+		markdownString.appendMarkdown('&nbsp;&nbsp;');
+		markdownString.appendMarkdown(`[$(copy) Message](command:git.blameStatusBarItem.copyContent?${encodeURIComponent(JSON.stringify(blameInformation.message))})`);
+	}
+
+	return markdownString;
 }
 
 interface RepositoryBlameInformation {
 	readonly commit: string; /* commit used for blame information */
-	readonly blameInformation: Map<Uri, ResourceBlameInformation>;
-}
-
-interface ResourceBlameInformation {
-	readonly staged: boolean; /* whether the file is staged */
-	readonly blameInformation: BlameInformation[];
+	readonly blameInformation: Map<Uri, BlameInformation[]>;
 }
 
 interface LineBlameInformation {
@@ -106,7 +112,9 @@ export class GitBlameController {
 	public readonly onDidChangeBlameInformation = this._onDidChangeBlameInformation.event;
 
 	readonly textEditorBlameInformation = new Map<TextEditor, readonly LineBlameInformation[]>();
+
 	private readonly _repositoryBlameInformation = new Map<Repository, RepositoryBlameInformation>();
+	private readonly _stagedResourceDiffInformation = new Map<Repository, Map<Uri, TextEditorChange[]>>();
 
 	private _repositoryDisposables = new Map<Repository, IDisposable[]>();
 	private _disposables: IDisposable[] = [];
@@ -128,6 +136,8 @@ export class GitBlameController {
 		const repositoryDisposables: IDisposable[] = [];
 
 		repository.onDidRunGitStatus(() => this._onDidRunGitStatus(repository), this, repositoryDisposables);
+		repository.onDidChangeRepository(e => this._onDidChangeRepository(repository, e), this, this._disposables);
+
 		this._repositoryDisposables.set(repository, repositoryDisposables);
 	}
 
@@ -142,36 +152,27 @@ export class GitBlameController {
 	}
 
 	private _onDidRunGitStatus(repository: Repository): void {
-		let repositoryBlameInformation = this._repositoryBlameInformation.get(repository);
+		const repositoryBlameInformation = this._repositoryBlameInformation.get(repository);
 		if (!repositoryBlameInformation) {
 			return;
 		}
 
-		let updateDecorations = false;
-
-		// 1. HEAD commit changed (remove all blame information for the repository)
+		// HEAD commit changed (remove blame information for the repository)
 		if (repositoryBlameInformation.commit !== repository.HEAD?.commit) {
 			this._repositoryBlameInformation.delete(repository);
-			repositoryBlameInformation = undefined;
-			updateDecorations = true;
-		}
 
-		// 2. Resource has been staged/unstaged (remove blame information for the resource)
-		for (const [uri, resourceBlameInformation] of repositoryBlameInformation?.blameInformation.entries() ?? []) {
-			const isStaged = repository.indexGroup.resourceStates
-				.some(r => pathEquals(uri.fsPath, r.resourceUri.fsPath));
-
-			if (resourceBlameInformation.staged !== isStaged) {
-				repositoryBlameInformation?.blameInformation.delete(uri);
-				updateDecorations = true;
-			}
-		}
-
-		if (updateDecorations) {
 			for (const textEditor of window.visibleTextEditors) {
 				this._updateTextEditorBlameInformation(textEditor);
 			}
 		}
+	}
+
+	private _onDidChangeRepository(repository: Repository, uri: Uri): void {
+		if (!/\.git\/index$/.test(uri.fsPath)) {
+			return;
+		}
+
+		this._stagedResourceDiffInformation.delete(repository);
 	}
 
 	private async _getBlameInformation(resource: Uri): Promise<BlameInformation[] | undefined> {
@@ -182,25 +183,66 @@ export class GitBlameController {
 
 		const repositoryBlameInformation = this._repositoryBlameInformation.get(repository) ?? {
 			commit: repository.HEAD.commit,
-			blameInformation: new Map<Uri, ResourceBlameInformation>()
+			blameInformation: new Map<Uri, BlameInformation[]>()
 		} satisfies RepositoryBlameInformation;
 
 		let resourceBlameInformation = repositoryBlameInformation.blameInformation.get(resource);
 		if (repositoryBlameInformation.commit === repository.HEAD.commit && resourceBlameInformation) {
-			return resourceBlameInformation.blameInformation;
+			return resourceBlameInformation;
 		}
 
-		const staged = repository.indexGroup.resourceStates
-			.some(r => pathEquals(resource.fsPath, r.resourceUri.fsPath));
-		const blameInformation = await repository.blame2(resource.fsPath) ?? [];
-		resourceBlameInformation = { staged, blameInformation } satisfies ResourceBlameInformation;
+		// Get blame information for the resource
+		resourceBlameInformation = await repository.blame2(resource.fsPath, repository.HEAD.commit) ?? [];
 
 		this._repositoryBlameInformation.set(repository, {
 			...repositoryBlameInformation,
 			blameInformation: repositoryBlameInformation.blameInformation.set(resource, resourceBlameInformation)
 		});
 
-		return resourceBlameInformation.blameInformation;
+		return resourceBlameInformation;
+	}
+
+	private async _getStagedResourceDiffInformation(uri: Uri): Promise<TextEditorChange[] | undefined> {
+		const repository = this._model.getRepository(uri);
+		if (!repository) {
+			return undefined;
+		}
+
+		const [resource] = repository.indexGroup
+			.resourceStates.filter(r => pathEquals(uri.fsPath, r.resourceUri.fsPath));
+
+		if (!resource || !resource.leftUri || !resource.rightUri) {
+			return undefined;
+		}
+
+		const diffInformationMap = this._stagedResourceDiffInformation.get(repository) ?? new Map<Uri, TextEditorChange[]>();
+		let changes = diffInformationMap.get(resource.resourceUri);
+		if (changes) {
+			return changes;
+		}
+
+		// Get the diff information for the staged resource
+		const diffInformation: LineChange[] = await commands.executeCommand('_workbench.internal.computeDirtyDiff', resource.leftUri, resource.rightUri);
+		if (!diffInformation) {
+			return undefined;
+		}
+
+		changes = diffInformation.map(change => {
+			const kind = change.originalEndLineNumber === 0 ? TextEditorChangeKind.Addition :
+				change.modifiedEndLineNumber === 0 ? TextEditorChangeKind.Deletion : TextEditorChangeKind.Modification;
+
+			return {
+				originalStartLineNumber: change.originalStartLineNumber,
+				originalEndLineNumber: change.originalEndLineNumber,
+				modifiedStartLineNumber: change.modifiedStartLineNumber,
+				modifiedEndLineNumber: change.modifiedEndLineNumber,
+				kind
+			} satisfies TextEditorChange;
+		});
+
+		this._stagedResourceDiffInformation.set(repository, diffInformationMap.set(resource.resourceUri, changes));
+
+		return changes;
 	}
 
 	@throttle
@@ -215,13 +257,9 @@ export class GitBlameController {
 			return;
 		}
 
-		// Remove the diff information that is contained in the git blame information.
-		// This is done since git blame information is the source of truth and we don't
-		// need the diff information for those ranges. The complete diff information is
-		// still used to determine whether a line is changed or not.
-		const diffInformationWithBlame = processTextEditorChangesWithBlameInformation(
-			resourceBlameInformation,
-			diffInformation.changes);
+		// The diff information does not contain changes that have been staged. We need
+		// to get the staged changes and if present, merge them with the diff information.
+		const diffInformationStagedResources: TextEditorChange[] = await this._getStagedResourceDiffInformation(textEditor.document.uri) ?? [];
 
 		const lineBlameInformation: LineBlameInformation[] = [];
 		for (const lineNumber of textEditor.selections.map(s => s.active.line)) {
@@ -231,8 +269,16 @@ export class GitBlameController {
 				continue;
 			}
 
-			// Map the line number to the git blame ranges
-			const lineNumberWithDiff = mapLineNumber(lineNumber + 1, diffInformationWithBlame);
+			// Check if the line is contained in the staged resources diff information
+			if (isLineChanged(lineNumber + 1, diffInformationStagedResources)) {
+				lineBlameInformation.push({ lineNumber, blameInformation: l10n.t('Not Committed Yet (Staged)') });
+				continue;
+			}
+
+			const diffInformationAll = [...diffInformation.changes, ...diffInformationStagedResources];
+
+			// Map the line number to the git blame ranges using the diff information
+			const lineNumberWithDiff = mapLineNumber(lineNumber + 1, diffInformationAll);
 			const blameInformation = resourceBlameInformation.find(blameInformation => {
 				return blameInformation.ranges.find(range => {
 					return lineNumberWithDiff >= range.startLineNumber && lineNumberWithDiff <= range.endLineNumber;
@@ -240,11 +286,7 @@ export class GitBlameController {
 			});
 
 			if (blameInformation) {
-				if (blameInformation.id !== notCommittedYetId) {
-					lineBlameInformation.push({ lineNumber, blameInformation });
-				} else {
-					lineBlameInformation.push({ lineNumber, blameInformation: l10n.t('Not Committed Yet (Staged)') });
-				}
+				lineBlameInformation.push({ lineNumber, blameInformation });
 			}
 		}
 
@@ -314,16 +356,19 @@ class GitBlameEditorDecoration {
 			const contentText = typeof blame.blameInformation === 'string'
 				? blame.blameInformation
 				: `${blame.blameInformation.message ?? ''}, ${blame.blameInformation.authorName ?? ''} (${fromNow(blame.blameInformation.date ?? Date.now(), true, true)})`;
-			return this._createDecoration(blame.lineNumber, contentText);
+			const hoverMessage = getBlameInformationHover(textEditor.document.uri, blame.blameInformation);
+
+			return this._createDecoration(blame.lineNumber, contentText, hoverMessage);
 		});
 
 		textEditor.setDecorations(this._decorationType, decorations);
 	}
 
-	private _createDecoration(lineNumber: number, contentText: string): DecorationOptions {
+	private _createDecoration(lineNumber: number, contentText: string, hoverMessage: MarkdownString): DecorationOptions {
 		const position = new Position(lineNumber, Number.MAX_SAFE_INTEGER);
 
 		return {
+			hoverMessage,
 			range: new Range(position, position),
 			renderOptions: {
 				after: {
@@ -389,6 +434,7 @@ class GitBlameStatusBarItem {
 
 		if (!this._statusBarItem) {
 			this._statusBarItem = window.createStatusBarItem('git.blame', StatusBarAlignment.Right, 200);
+			this._statusBarItem.name = l10n.t('Git Blame Information');
 			this._disposables.push(this._statusBarItem);
 		}
 
@@ -400,11 +446,14 @@ class GitBlameStatusBarItem {
 
 		if (typeof blameInformation[0].blameInformation === 'string') {
 			this._statusBarItem.text = `$(git-commit) ${blameInformation[0].blameInformation}`;
+			this._statusBarItem.tooltip = getBlameInformationHover(textEditor.document.uri, blameInformation[0].blameInformation);
+			this._statusBarItem.command = undefined;
 		} else {
 			this._statusBarItem.text = `$(git-commit) ${blameInformation[0].blameInformation.authorName ?? ''} (${fromNow(blameInformation[0].blameInformation.date ?? new Date(), true, true)})`;
+			this._statusBarItem.tooltip = getBlameInformationHover(textEditor.document.uri, blameInformation[0].blameInformation);
 			this._statusBarItem.command = {
 				title: l10n.t('View Commit'),
-				command: 'git.statusBar.viewCommit',
+				command: 'git.blameStatusBarItem.viewCommit',
 				arguments: [textEditor.document.uri, blameInformation[0].blameInformation.id]
 			} satisfies Command;
 		}
