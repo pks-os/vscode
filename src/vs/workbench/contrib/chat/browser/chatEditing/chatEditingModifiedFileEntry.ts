@@ -192,6 +192,7 @@ export class ChatEditingModifiedFileEntry extends Disposable implements IModifie
 			telemetryInfo: this._telemetryInfo
 		};
 	}
+
 	restoreFromSnapshot(snapshot: ISnapshotEntry) {
 		this._stateObs.set(snapshot.state, undefined);
 		this.docSnapshot.setValue(snapshot.original);
@@ -258,6 +259,7 @@ export class ChatEditingModifiedFileEntry extends Disposable implements IModifie
 			}
 
 			this._allEditsAreFromUs = false;
+			this._updateDiffInfoSeq(true);
 		}
 
 		if (!this.isCurrentlyBeingModified.get()) {
@@ -271,8 +273,6 @@ export class ChatEditingModifiedFileEntry extends Disposable implements IModifie
 					}
 			}
 		}
-
-		this._updateDiffInfoSeq(!this._isEditFromUs);
 	}
 
 	acceptAgentEdits(textEdits: TextEdit[], isLastEdits: boolean): void {
@@ -347,7 +347,7 @@ export class ChatEditingModifiedFileEntry extends Disposable implements IModifie
 				{ computeMoves: true, ignoreTrimWhitespace: false, maxComputationTimeMs: 3000 },
 				'advanced'
 			),
-			timeout(fast ? 50 : 800) // DON't diff too fast
+			timeout(fast ? 0 : 800) // DON't diff too fast
 		]);
 
 		if (this.docSnapshot.isDisposed() || this.doc.isDisposed()) {
@@ -369,6 +369,7 @@ export class ChatEditingModifiedFileEntry extends Disposable implements IModifie
 		}
 
 		this.docSnapshot.setValue(this.doc.createSnapshot());
+		this._diffInfo.set(nullDocumentDiff, transaction);
 		this._edit = OffsetEdit.empty;
 		this._stateObs.set(WorkingSetEntryState.Accepted, transaction);
 		await this.collapse(transaction);

@@ -32,6 +32,7 @@ import { IEditorGroupsService } from '../../../../services/editor/common/editorG
 import { ACTIVE_GROUP, IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IHostService } from '../../../../services/host/browser/host.js';
 import { IViewsService } from '../../../../services/views/common/viewsService.js';
+import { EXTENSIONS_CATEGORY, IExtensionsWorkbenchService } from '../../../extensions/common/extensions.js';
 import { ChatAgentLocation, IChatAgentService } from '../../common/chatAgents.js';
 import { ChatContextKeys } from '../../common/chatContextKeys.js';
 import { extractAgentAndCommand } from '../../common/chatParserTypes.js';
@@ -39,6 +40,7 @@ import { IChatDetail, IChatService } from '../../common/chatService.js';
 import { IChatVariablesService } from '../../common/chatVariables.js';
 import { IChatRequestViewModel, IChatResponseViewModel, isRequestVM } from '../../common/chatViewModel.js';
 import { IChatWidgetHistoryService } from '../../common/chatWidgetHistoryService.js';
+import { CopilotUsageExtensionFeatureId } from '../../common/languageModelStats.js';
 import { ChatViewId, IChatWidget, IChatWidgetService, showChatView } from '../chat.js';
 import { IChatEditorOptions } from '../chatEditor.js';
 import { ChatEditorInput } from '../chatEditorInput.js';
@@ -474,7 +476,7 @@ export function registerChatActions() {
 					{
 						id: MenuId.ChatCommandCenter,
 						group: 'z_end',
-						order: 1
+						order: 2
 					}
 				]
 			});
@@ -485,6 +487,52 @@ export function registerChatActions() {
 			if (defaultChat.documentationUrl) {
 				openerService.open(URI.parse(defaultChat.documentationUrl));
 			}
+		}
+	});
+
+	registerAction2(class ManagePlanAction extends Action2 {
+
+		static readonly ID = 'workbench.action.chat.managePlan';
+		static readonly TITLE = localize2('managePlan', "Manage {0} Plan", defaultChat.name);
+
+		constructor() {
+			super({
+				id: ManagePlanAction.ID,
+				title: ManagePlanAction.TITLE,
+				f1: true,
+				category: CHAT_CATEGORY,
+				menu: [
+					{
+						id: MenuId.ChatCommandCenter,
+						group: 'z_end',
+						order: 1
+					}
+				]
+			});
+		}
+
+		override async run(accessor: ServicesAccessor): Promise<void> {
+			const openerService = accessor.get(IOpenerService);
+			if (defaultChat.documentationUrl) {
+				openerService.open(URI.parse(defaultChat.managePlanUrl));
+			}
+		}
+	});
+
+	registerAction2(class ShowExtensionsUsingCopilit extends Action2 {
+
+		constructor() {
+			super({
+				id: 'workbench.action.chat.showExtensionsUsingCopilot',
+				title: localize2('showCopilotUsageExtensions', "Show Extensions using Copilot"),
+				f1: true,
+				category: EXTENSIONS_CATEGORY,
+			});
+		}
+
+		override async run(accessor: ServicesAccessor): Promise<void> {
+			const extensionsWorkbenchService = accessor.get(IExtensionsWorkbenchService);
+			extensionsWorkbenchService.openSearch(`@feature:${CopilotUsageExtensionFeatureId}`);
 		}
 	});
 }
@@ -504,6 +552,7 @@ const defaultChat = {
 	name: product.defaultChatAgent?.name ?? '',
 	icon: Codicon[product.defaultChatAgent?.icon as keyof typeof Codicon ?? 'commentDiscussion'],
 	documentationUrl: product.defaultChatAgent?.documentationUrl ?? '',
+	managePlanUrl: product.defaultChatAgent?.managePlanUrl ?? '',
 };
 
 MenuRegistry.appendMenuItem(MenuId.CommandCenter, {
