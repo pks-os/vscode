@@ -136,7 +136,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 					)
 				)
 			)!,
-			icon: Codicon.copilot,
+			icon: Codicon.copilotLarge,
 			content: disposables => disposables.add(this.instantiationService.createInstance(ChatSetupWelcomeContent, this.controller.value, this.context)).element,
 		});
 	}
@@ -161,7 +161,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 					),
 					menu: {
 						id: MenuId.ChatCommandCenter,
-						group: 'a_first',
+						group: 'a_last',
 						order: 1,
 						when: ChatContextKeys.Setup.installed.negate()
 					}
@@ -179,10 +179,9 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				showCopilotView(viewsService);
 				ensureSideBarChatViewSize(400, viewDescriptorService, layoutService);
 
-				// Setup should be kicked off immediately
-				if (typeof startSetup === 'boolean' && startSetup) {
+				if (startSetup === true && !ASK_FOR_PUBLIC_CODE_MATCHES) {
 					const controller = that.controller.value;
-					controller.setup({ publicCodeSuggestions: true }); // TODO@sbatten pass in as argument
+					controller.setup({ publicCodeSuggestions: true });
 				}
 
 				configurationService.updateValue('chat.commandCenter.enabled', true);
@@ -797,7 +796,10 @@ class ChatSetupWelcomeContent extends Disposable {
 
 		// Terms
 		const terms = localize({ key: 'termsLabel', comment: ['{Locked="["}', '{Locked="]({0})"}', '{Locked="]({1})"}'] }, "By continuing, you agree to our [Terms]({0}) and [Privacy Policy]({1}).", defaultChat.termsStatementUrl, defaultChat.privacyStatementUrl);
-		this.element.appendChild($('p')).appendChild(this._register(markdown.render(new MarkdownString(terms, { isTrusted: true }))).element);
+		const termsContainer = this.element.appendChild($('p'));
+		termsContainer.classList.add('terms-container');
+		termsContainer.classList.toggle('is-standalone', !ASK_FOR_PUBLIC_CODE_MATCHES);
+		termsContainer.appendChild(this._register(markdown.render(new MarkdownString(terms, { isTrusted: true }))).element);
 
 		// Setup Button
 		const actions: IAction[] = [];
@@ -849,10 +851,13 @@ class ChatSetupWelcomeContent extends Disposable {
 				buttonLabel = this.context.state.registered ? localize('signUp', "Sign in to Use Copilot") : localize('signUpFree', "Sign in to Use Copilot for Free");
 				break;
 			case ChatEntitlement.Unresolved:
+				showLimitedSkuHeader = true;
+				buttonLabel = this.context.state.registered ? localize('startUp', "Use Copilot") : localize('startUpLimited', "Use Copilot for Free");
+				break;
 			case ChatEntitlement.Available:
 			case ChatEntitlement.Limited:
 				showLimitedSkuHeader = true;
-				buttonLabel = this.context.state.registered ? localize('startUp', "Use Copilot") : localize('startUpLimited', "Use Copilot for Free");
+				buttonLabel = localize('startUpLimited', "Use Copilot for Free");
 				break;
 			case ChatEntitlement.Pro:
 			case ChatEntitlement.Unavailable:
@@ -928,7 +933,8 @@ class ChatSetupContext extends Disposable {
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IExtensionService private readonly extensionService: IExtensionService,
 		@IExtensionManagementService private readonly extensionManagementService: IExtensionManagementService,
-		@IWorkbenchExtensionEnablementService private readonly extensionEnablementService: IWorkbenchExtensionEnablementService
+		@IWorkbenchExtensionEnablementService private readonly extensionEnablementService: IWorkbenchExtensionEnablementService,
+		@ILogService private readonly logService: ILogService
 	) {
 		super();
 
@@ -962,6 +968,8 @@ class ChatSetupContext extends Disposable {
 	update(context: { triggered: boolean }): Promise<void>;
 	update(context: { entitlement: ChatEntitlement }): Promise<void>;
 	update(context: { installed?: boolean; triggered?: boolean; entitlement?: ChatEntitlement }): Promise<void> {
+		this.logService.trace(`[chat setup] update(): ${JSON.stringify(context)}`);
+
 		if (typeof context.installed === 'boolean') {
 			this._state.installed = context.installed;
 
@@ -991,6 +999,8 @@ class ChatSetupContext extends Disposable {
 
 	private async updateContext(): Promise<void> {
 		await this.updateBarrier?.wait();
+
+		this.logService.trace(`[chat setup] updateContext(): ${JSON.stringify(this._state)}`);
 
 		if (this._state.triggered && !this._state.installed) {
 			// this is ugly but fixes flicker from a previous chat install
