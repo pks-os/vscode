@@ -52,7 +52,7 @@ import { IChatAgentService } from '../common/chatAgents.js';
 import { ChatContextKeys } from '../common/chatContextKeys.js';
 import { CHAT_CATEGORY } from './actions/chatActions.js';
 import { ChatViewId, EditsViewId, ensureSideBarChatViewSize, IChatWidget, showChatView, showEditsView } from './chat.js';
-import { CHAT_EDITING_SIDEBAR_PANEL_ID, CHAT_SIDEBAR_PANEL_ID, SetupWelcomeViewCondition } from './chatViewPane.js';
+import { CHAT_EDITING_SIDEBAR_PANEL_ID, CHAT_SIDEBAR_PANEL_ID } from './chatViewPane.js';
 import { ChatViewsWelcomeExtensions, IChatViewsWelcomeContributionRegistry } from './viewsWelcome/chatViewsWelcome.js';
 import { IChatQuotasService } from './chatQuotasService.js';
 import { mainWindow } from '../../../../base/browser/window.js';
@@ -122,7 +122,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 	private registerChatWelcome(): void {
 		Registry.as<IChatViewsWelcomeContributionRegistry>(ChatViewsWelcomeExtensions.ChatViewsWelcomeRegistry).register({
 			title: localize('welcomeChat', "Welcome to Copilot"),
-			when: SetupWelcomeViewCondition,
+			when: ChatContextKeys.SetupViewCondition,
 			icon: Codicon.copilotLarge,
 			content: disposables => disposables.add(this.instantiationService.createInstance(ChatSetupWelcomeContent, this.controller.value, this.context)).element,
 		});
@@ -266,7 +266,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 					const entitlement = await that.requests.forceResolveEntitlement(undefined);
 					if (entitlement === ChatEntitlement.Pro) {
-						commandService.executeCommand('github.copilot.refreshToken'); // ugly, but we need to signal to the extension that entitlements changed
+						refreshTokens(commandService);
 					}
 				}
 			}
@@ -787,7 +787,7 @@ class ChatSetupController extends Disposable {
 			installResult = isCancellationError(error) ? 'cancelled' : 'failedInstall';
 		} finally {
 			if (wasInstalled && didSignUp) {
-				this.commandService.executeCommand('github.copilot.refreshToken'); // ugly, but we need to signal to the extension that sign-up happened
+				refreshTokens(this.commandService);
 			}
 
 			if (installResult === 'installed') {
@@ -879,7 +879,7 @@ class ChatSetupWelcomeContent extends Disposable {
 		this.element.appendChild($('p')).appendChild(this._register(markdown.render(new MarkdownString(terms, { isTrusted: true }))).element);
 
 		// SKU Settings
-		const settings = localize({ key: 'settings', comment: ['{Locked="["}', '{Locked="]({0})"}', '{Locked="]({1})"}'] }, "Copilot may show [public code]({0}) suggestions and collect telemetry. You can change these [settings]({1}) at any time.", defaultChat.publicCodeMatchesUrl, defaultChat.manageSettingsUrl);
+		const settings = localize({ key: 'settings', comment: ['{Locked="["}', '{Locked="]({0})"}', '{Locked="]({1})"}'] }, "Copilot Free and Pro may show [public code]({0}) suggestions and we may use your data for product improvement. You can change these [settings]({1}) at any time.", defaultChat.publicCodeMatchesUrl, defaultChat.manageSettingsUrl);
 		const settingsContainer = this.element.appendChild($('p'));
 		settingsContainer.appendChild(this._register(markdown.render(new MarkdownString(settings, { isTrusted: true }))).element);
 
@@ -1087,4 +1087,10 @@ function showCopilotView(viewsService: IViewsService, layoutService: IWorkbenchL
 	} else {
 		return showChatView(viewsService);
 	}
+}
+
+function refreshTokens(commandService: ICommandService): void {
+	// ugly, but we need to signal to the extension that entitlements changed
+	commandService.executeCommand('github.copilot.signIn');
+	commandService.executeCommand('github.copilot.refreshToken');
 }
