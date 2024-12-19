@@ -60,6 +60,7 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IHostService } from '../../../services/host/browser/host.js';
 import Severity from '../../../../base/common/severity.js';
+import { IRemoteExtensionsScannerService } from '../../../../platform/remote/common/remoteExtensionsScanner.js';
 
 const defaultChat = {
 	extensionId: product.defaultChatAgent?.extensionId ?? '',
@@ -132,12 +133,9 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 	private registerActions(): void {
 		const that = this;
 
-		const chatSetupTriggerContext = ContextKeyExpr.and(
-			ContextKeyExpr.has('config.chat.experimental.offerSetup'),
-			ContextKeyExpr.or(
-				ChatContextKeys.Setup.installed.negate(),
-				ChatContextKeys.Setup.canSignUp
-			)
+		const chatSetupTriggerContext = ContextKeyExpr.or(
+			ChatContextKeys.Setup.installed.negate(),
+			ChatContextKeys.Setup.canSignUp
 		);
 		class ChatSetupTriggerAction extends Action2 {
 
@@ -188,10 +186,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 					title: ChatSetupHideAction.TITLE,
 					f1: true,
 					category: CHAT_CATEGORY,
-					precondition: ContextKeyExpr.and(
-						ChatContextKeys.Setup.installed.negate(),
-						ContextKeyExpr.has('config.chat.experimental.offerSetup')
-					),
+					precondition: ChatContextKeys.Setup.installed.negate(),
 					menu: {
 						id: MenuId.ChatCommandCenter,
 						group: 'z_hide',
@@ -1006,6 +1001,7 @@ class ChatSetupContext extends Disposable {
 	private readonly canSignUpContextKey = ChatContextKeys.Setup.canSignUp.bindTo(this.contextKeyService);
 	private readonly signedOutContextKey = ChatContextKeys.Setup.signedOut.bindTo(this.contextKeyService);
 	private readonly limitedContextKey = ChatContextKeys.Setup.limited.bindTo(this.contextKeyService);
+	private readonly proContextKey = ChatContextKeys.Setup.pro.bindTo(this.contextKeyService);
 	private readonly triggeredContext = ChatContextKeys.Setup.triggered.bindTo(this.contextKeyService);
 	private readonly installedContext = ChatContextKeys.Setup.installed.bindTo(this.contextKeyService);
 
@@ -1027,6 +1023,7 @@ class ChatSetupContext extends Disposable {
 		@IExtensionService private readonly extensionService: IExtensionService,
 		@IExtensionManagementService private readonly extensionManagementService: IExtensionManagementService,
 		@IWorkbenchExtensionEnablementService private readonly extensionEnablementService: IWorkbenchExtensionEnablementService,
+		@IRemoteExtensionsScannerService private readonly remoteExtensionsScannerService: IRemoteExtensionsScannerService,
 		@ILogService private readonly logService: ILogService
 	) {
 		super();
@@ -1052,6 +1049,7 @@ class ChatSetupContext extends Disposable {
 			}
 		}));
 
+		await this.remoteExtensionsScannerService.whenExtensionsReady();
 		const extensions = await this.extensionManagementService.getInstalled();
 		const defaultChatExtension = extensions.find(value => ExtensionIdentifier.equals(value.identifier.id, defaultChat.extensionId));
 		this.update({ installed: !!defaultChatExtension && this.extensionEnablementService.isEnabled(defaultChatExtension) });
@@ -1108,6 +1106,7 @@ class ChatSetupContext extends Disposable {
 		this.signedOutContextKey.set(this._state.entitlement === ChatEntitlement.Unknown);
 		this.canSignUpContextKey.set(this._state.entitlement === ChatEntitlement.Available);
 		this.limitedContextKey.set(this._state.entitlement === ChatEntitlement.Limited);
+		this.proContextKey.set(this._state.entitlement === ChatEntitlement.Pro);
 		this.triggeredContext.set(!!this._state.triggered);
 		this.installedContext.set(!!this._state.installed);
 
