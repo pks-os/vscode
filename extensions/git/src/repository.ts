@@ -1088,7 +1088,11 @@ export class Repository implements Disposable {
 	}
 
 	setConfig(key: string, value: string): Promise<string> {
-		return this.run(Operation.Config(false), () => this.repository.config('set', 'local', key, value));
+		return this.run(Operation.Config(false), () => this.repository.config('add', 'local', key, value));
+	}
+
+	unsetConfig(key: string): Promise<string> {
+		return this.run(Operation.Config(false), () => this.repository.config('unset', 'local', key));
 	}
 
 	log(options?: LogOptions & { silent?: boolean }): Promise<Commit[]> {
@@ -1589,7 +1593,12 @@ export class Repository implements Disposable {
 
 	private async getDefaultBranch(): Promise<Branch | undefined> {
 		try {
-			const defaultBranch = await this.repository.getDefaultBranch();
+			if (this.remotes.length === 0) {
+				return undefined;
+			}
+
+			const remote = this.remotes.find(r => r.name === 'origin') ?? this.remotes[0];
+			const defaultBranch = await this.repository.getDefaultBranch(remote.name);
 			return defaultBranch;
 		}
 		catch (err) {
