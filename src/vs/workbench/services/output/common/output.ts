@@ -52,8 +52,6 @@ export const SHOW_WARNING_FILTER_CONTEXT = new RawContextKey<boolean>('output.fi
 export const SHOW_ERROR_FILTER_CONTEXT = new RawContextKey<boolean>('output.filter.error', true);
 export const OUTPUT_FILTER_FOCUS_CONTEXT = new RawContextKey<boolean>('outputFilterFocus', false);
 
-export const LOG_ENTRY_REGEX = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (\[(info|trace|debug|error|warning)\])/;
-
 export interface IOutputViewFilters {
 	readonly onDidChange: Event<void>;
 	text: string;
@@ -251,6 +249,8 @@ class OutputChannelRegistry implements IOutputChannelRegistry {
 
 Registry.add(Extensions.OutputChannels, new OutputChannelRegistry());
 
+const LOG_ENTRY_REGEX = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s(?:\[(?!info|trace|debug|error|warning).*?\]\s)?(\[(info|trace|debug|error|warning)\])/;
+
 export interface ILogEntry {
 	readonly timestamp: number;
 	readonly logLevel: LogLevel;
@@ -310,6 +310,23 @@ export function parseLogEntryAt(model: ITextModel, lineNumber: number): ILogEntr
 		return { timestamp, logLevel, range: new Range(startLine, 1, endLine, model.getLineMaxColumn(endLine)), timestampRange };
 	}
 	return null;
+}
+
+/**
+ * Iterator for log entries from a model with a processing function.
+ *
+ * @param model - The text model containing the log entries.
+ * @param process - A function to process each log entry.
+ * @returns An iterable iterator for processed log entries.
+ */
+export function* logEntryIterator<T>(model: ITextModel, process: (logEntry: ILogEntry) => T): IterableIterator<T> {
+	for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+		const logEntry = parseLogEntryAt(model, lineNumber);
+		if (logEntry) {
+			yield process(logEntry);
+			lineNumber = logEntry.range.endLineNumber;
+		}
+	}
 }
 
 function parseLogLevel(level: string): LogLevel {
