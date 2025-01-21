@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { authentication, Command, l10n, LogOutputChannel } from 'vscode';
+import { authentication, Command, l10n, LogOutputChannel, workspace } from 'vscode';
 import { Commit, Repository as GitHubRepository, Maybe } from '@octokit/graphql-schema';
 import { API, AvatarQuery, AvatarQueryCommit, Repository, SourceControlHistoryItemDetailsProvider } from './typings/git';
 import { DisposableStore, getRepositoryDefaultRemote, getRepositoryDefaultRemoteUrl, getRepositoryFromUrl, groupBy, sequentialize } from './util';
@@ -78,7 +78,7 @@ function compareAvatarQuery(a: AvatarQueryCommit, b: AvatarQueryCommit): number 
 }
 
 export class GitHubSourceControlHistoryItemDetailsProvider implements SourceControlHistoryItemDetailsProvider {
-	private _enabled = true;
+	private _isUserAuthenticated = true;
 	private readonly _store = new Map<string, GitHubRepositoryStore>();
 	private readonly _disposables = new DisposableStore();
 
@@ -87,16 +87,27 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 
 		this._disposables.add(authentication.onDidChangeSessions(e => {
 			if (e.provider.id === 'github') {
-				this._enabled = true;
+				this._isUserAuthenticated = true;
 			}
+		}));
+
+		this._disposables.add(workspace.onDidChangeConfiguration(e => {
+			if (!e.affectsConfiguration('github.showAvatar')) {
+				return;
+			}
+
+			this._store.clear();
 		}));
 	}
 
 	async provideAvatar(repository: Repository, query: AvatarQuery): Promise<Map<string, string | undefined> | undefined> {
 		this._logger.trace(`[GitHubSourceControlHistoryItemDetailsProvider][provideAvatar] Avatar resolution for ${query.commits.length} commit(s) in ${repository.rootUri.fsPath}.`);
 
-		if (!this._enabled) {
-			this._logger.trace(`[GitHubSourceControlHistoryItemDetailsProvider][provideAvatar] Avatar resolution is disabled.`);
+		const config = workspace.getConfiguration('github', repository.rootUri);
+		const showAvatar = config.get<boolean>('showAvatar', true) === true;
+
+		if (!this._isUserAuthenticated || !showAvatar) {
+			this._logger.trace(`[GitHubSourceControlHistoryItemDetailsProvider][provideAvatar] Avatar resolution is disabled. (${showAvatar === false ? 'setting' : 'auth'})`);
 			return undefined;
 		}
 
@@ -106,7 +117,10 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 			return undefined;
 		}
 
+
 		try {
+			const logs = { cached: 0, email: 0, github: 0, incomplete: 0 };
+
 			// Warm up the in-memory cache with the first page
 			// (100 users) from this list of assignable users
 			await this._loadAssignableUsers(descriptor);
@@ -120,43 +134,46 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 			const authorQuery = groupBy<AvatarQueryCommit>(query.commits, compareAvatarQuery);
 
 			const results = new Map<string, string | undefined>();
-			await Promise.all(authorQuery.map(async q => {
-				if (q.length === 0) {
+			await Promise.all(authorQuery.map(async commits => {
+				if (commits.length === 0) {
 					return;
 				}
 
 				// Query the in-memory cache for the user
 				const avatarUrl = repositoryStore.users.find(
-					user => user.email === q[0].authorEmail || user.name === q[0].authorName)?.avatarUrl;
+					user => user.email === commits[0].authorEmail || user.name === commits[0].authorName)?.avatarUrl;
 
 				// Cache hit
 				if (avatarUrl) {
 					// Add avatar for each commit
-					q.forEach(({ hash }) => results.set(hash, `${avatarUrl}&s=${query.size}`));
+					logs.cached += commits.length;
+					commits.forEach(({ hash }) => results.set(hash, `${avatarUrl}&s=${query.size}`));
 					return;
 				}
 
 				// Check if any of the commit are being tracked in the list
 				// of known commits that have incomplte author information
-				if (q.some(({ hash }) => repositoryStore.commits.has(hash))) {
-					q.forEach(({ hash }) => results.set(hash, undefined));
+				if (commits.some(({ hash }) => repositoryStore.commits.has(hash))) {
+					commits.forEach(({ hash }) => results.set(hash, undefined));
 					return;
 				}
 
 				// Try to extract the user identifier from GitHub no-reply emails
-				const userIdFromEmail = getUserIdFromNoReplyEmail(q[0].authorEmail);
+				const userIdFromEmail = getUserIdFromNoReplyEmail(commits[0].authorEmail);
 				if (userIdFromEmail) {
+					logs.email += commits.length;
 					const avatarUrl = getAvatarLink(userIdFromEmail, query.size);
-					q.forEach(({ hash }) => results.set(hash, avatarUrl));
+					commits.forEach(({ hash }) => results.set(hash, avatarUrl));
 					return;
 				}
 
 				// Get the commit details
-				const commitAuthor = await this._getCommitAuthor(descriptor, q[0].hash);
+				const commitAuthor = await this._getCommitAuthor(descriptor, commits[0].hash);
 				if (!commitAuthor) {
 					// The commit has incomplete author information, so
 					// we should not try to query the authors details again
-					for (const { hash } of q) {
+					logs.incomplete += commits.length;
+					for (const { hash } of commits) {
 						repositoryStore.commits.add(hash);
 						results.set(hash, undefined);
 					}
@@ -167,8 +184,11 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 				repositoryStore.users.push(commitAuthor);
 
 				// Add avatar for each commit
-				q.forEach(({ hash }) => results.set(hash, `${commitAuthor.avatarUrl}&s=${query.size}`));
+				logs.github += commits.length;
+				commits.forEach(({ hash }) => results.set(hash, `${commitAuthor.avatarUrl}&s=${query.size}`));
 			}));
+
+			this._logger.trace(`[GitHubSourceControlHistoryItemDetailsProvider][provideAvatar] Avatar resolution for ${query.commits.length} commit(s) in ${repository.rootUri.fsPath} complete: ${JSON.stringify(logs)}.`);
 
 			return results;
 		} catch (err) {
@@ -176,7 +196,7 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 			// signed in with their GitHub account or they have signed out. Disable the
 			// avatar resolution until the user signes in with their GitHub account.
 			if (err instanceof AuthenticationError) {
-				this._enabled = false;
+				this._isUserAuthenticated = false;
 			}
 
 			return undefined;
